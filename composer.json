@@ -33,7 +33,8 @@
     "pestphp/pest-plugin-laravel": "^2.4|^3.2|^4.0",
     "laravel/pint": "^1.23",
     "inertiajs/inertia-laravel": "^2.0",
-    "guzzlehttp/psr7": "^2.7"
+    "guzzlehttp/psr7": "^2.7",
+    "guzzlehttp/promises": "^2.0"
   },
   "autoload": {
     "psr-4": {

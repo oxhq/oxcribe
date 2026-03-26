@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Oxhq\Oxcribe\Tests\TestCase;
-use PHPUnit\Framework\SkippedTestError;
 use Symfony\Component\Process\Process;
 
 uses(TestCase::class)->in('Feature', 'Unit');
@@ -21,9 +20,11 @@ function resolveOxinferSourceRoot(): string
         }
     }
 
-    throw new SkippedTestError(
+    test()->markTestSkipped(
         'Oxinfer source root is not available. Set OXINFER_SOURCE_ROOT to run oxcribe end-to-end fixture tests.'
     );
+
+    throw new RuntimeException('markTestSkipped() should interrupt execution.');
 }
 
 function configureFixtureOxinfer(string $fixtureRoot): void
