@@ -7,23 +7,12 @@ use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
 use Oxhq\Oxcribe\OxcribeManager;
 use Oxhq\Oxcribe\Support\RouteSnapshotExtractor;
 use Oxhq\Oxcribe\Tests\Support\FixtureRuntimeSnapshotFactory;
-use Symfony\Component\Process\Process;
 
 it('runs an end-to-end spatie fixture through analyze and export-openapi', function () {
     $fixtureRoot = realpath(__DIR__.'/../Fixtures/SpatieLaravelApp');
     expect($fixtureRoot)->not->toBeFalse();
 
-    $projectRoot = dirname(__DIR__, 5);
-    $oxinferRoot = $projectRoot.'/go/oxinfer';
-    $oxinferBinary = $oxinferRoot.'/bin/oxinfer';
-
-    $build = new Process(['go', 'build', '-o', $oxinferBinary, './cmd/oxinfer'], $oxinferRoot, [
-        'GOEXPERIMENT' => 'jsonv2',
-    ]);
-    $build->mustRun();
-
-    config()->set('oxcribe.oxinfer.binary', $oxinferBinary);
-    config()->set('oxcribe.oxinfer.working_directory', $fixtureRoot);
+    configureFixtureOxinfer($fixtureRoot);
 
     app()->instance(RuntimeSnapshotFactory::class, new FixtureRuntimeSnapshotFactory(
         app: app(),
