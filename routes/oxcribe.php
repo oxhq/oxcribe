@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
-use Garaekz\Oxcribe\Http\Controllers\DocsPageController;
-use Garaekz\Oxcribe\Http\Controllers\DocsPayloadController;
-use Garaekz\Oxcribe\Http\Controllers\OpenApiDocumentController;
+use Oxhq\Oxcribe\Http\Controllers\DocsPageController;
+use Oxhq\Oxcribe\Http\Controllers\DocsPayloadController;
+use Oxhq\Oxcribe\Http\Controllers\OpenApiDocumentController;
 
 Route::get((string) config('oxcribe.docs.route', 'oxcribe/docs'), DocsPageController::class)
     ->name('oxcribe.docs');
