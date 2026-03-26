@@ -1,0 +1,60 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            laravel: '^10.0'
+            testbench: '^8.0'
+            pest: '^2.34'
+            pest_plugin_laravel: '^2.4'
+          - php: '8.2'
+            laravel: '^11.0'
+            testbench: '^9.0'
+            pest: '^3.8'
+            pest_plugin_laravel: '^3.2'
+          - php: '8.2'
+            laravel: '^12.0'
+            testbench: '^10.0'
+            pest: '^3.8'
+            pest_plugin_laravel: '^3.2'
+          - php: '8.3'
+            laravel: '^13.0'
+            testbench: '^11.0'
+            pest: '^4.0'
+            pest_plugin_laravel: '^4.0'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.1'
+
+      - name: Validate composer metadata
+        run: composer validate --strict
+
+      - name: Align dependency matrix
+        run: |
+          composer require --no-update illuminate/console:${{ matrix.laravel }} illuminate/routing:${{ matrix.laravel }} illuminate/support:${{ matrix.laravel }}
+          composer require --dev --no-update orchestra/testbench:${{ matrix.testbench }} pestphp/pest:${{ matrix.pest }} pestphp/pest-plugin-laravel:${{ matrix.pest_plugin_laravel }}
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction
+
+      - name: Run package tests
+        run: ./vendor/bin/pest

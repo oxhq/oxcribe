@@ -1,0 +1,65 @@
+{
+  "name": "garaekz/oxcribe",
+  "description": "Runtime-first Laravel package that enriches routes with Oxinfer static analysis",
+  "type": "library",
+  "license": "MIT",
+  "keywords": [
+    "laravel",
+    "openapi",
+    "api-documentation",
+    "static-analysis",
+    "oxinfer"
+  ],
+  "authors": [
+    {
+      "name": "David Garay",
+      "email": "garaekz@gmail.com"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/garaekz/oxcribe/issues",
+    "source": "https://github.com/garaekz/oxcribe"
+  },
+  "require": {
+    "php": "^8.2",
+    "illuminate/console": "^10.0|^11.0|^12.0|^13.0",
+    "illuminate/routing": "^10.0|^11.0|^12.0|^13.0",
+    "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
+    "symfony/process": "^6.4|^7.0|^8.0"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
+    "pestphp/pest": "^2.34|^3.8|^4.0",
+    "pestphp/pest-plugin-laravel": "^2.4|^3.2|^4.0",
+    "laravel/pint": "^1.23",
+    "inertiajs/inertia-laravel": "^2.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Garaekz\\Oxcribe\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Garaekz\\Oxcribe\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "pest",
+    "format": "pint"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Garaekz\\Oxcribe\\OxcribeServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true,
+  "config": {
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  }
+}
