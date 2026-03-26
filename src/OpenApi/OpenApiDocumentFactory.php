@@ -9,8 +9,11 @@ use Oxhq\Oxcribe\Data\MergedOperation;
 use Oxhq\Oxcribe\Data\OperationGraph;
 use Oxhq\Oxcribe\Data\RouteBinding;
 use Oxhq\Oxcribe\Examples\Data\GeneratedOperationExample;
+use Oxhq\Oxcribe\Examples\Data\GeneratedScenarioExample;
+use Oxhq\Oxcribe\Examples\Data\OperationExampleSpec;
 use Oxhq\Oxcribe\Examples\OperationExampleGenerator;
 use Oxhq\Oxcribe\Examples\OperationExampleSpecFactory;
+use Oxhq\Oxcribe\OpenApi\Support\EffectiveRequestFieldLocation;
 use Oxhq\Oxcribe\OpenApi\Support\RequestFieldIndex;
 use Oxhq\Oxcribe\OpenApi\Support\ResourceSchemaIndex;
 
@@ -97,7 +100,9 @@ final class OpenApiDocumentFactory
         $requestFieldIndex = RequestFieldIndex::fromController($operation->controller);
         $override = $this->mergedOperationOverride($operation, $method, $config);
         $authProfile = $operation->authProfile();
-        $generatedExamples = $this->buildGeneratedExamples($operation);
+        $spec = $this->operationExampleSpecFactory->make($operation);
+        $generatedExamples = $this->buildGeneratedExamples($operation, $spec);
+        $generatedScenarios = $this->buildGeneratedScenarios($operation, $spec);
         $document = [
             'operationId' => $operation->operationId().'_'.$method,
             'responses' => $this->buildResponses($operation, $resourceIndex),
@@ -109,8 +114,11 @@ final class OpenApiDocumentFactory
             ],
         ];
 
-        if ($operation->name !== null) {
-            $document['summary'] = $operation->name;
+        $document['summary'] = $operation->name ?? $this->generatedOperationSummary($operation, $method);
+
+        $generatedDescription = $this->generatedOperationDescription($operation, $method);
+        if ($generatedDescription !== null) {
+            $document['description'] = $generatedDescription;
         }
 
         if ($operation->prefix !== null) {
@@ -153,6 +161,9 @@ final class OpenApiDocumentFactory
             $document['x-oxcribe']['examples'] = $this->generatedExamplesExtension($generatedExamples);
             $document['x-oxcribe']['snippets'] = $this->generatedSnippetsExtension($generatedExamples);
         }
+        if ($generatedScenarios !== []) {
+            $document['x-oxcribe']['scenarios'] = $this->generatedScenariosExtension($generatedScenarios);
+        }
         if ($requestBody !== null) {
             $requestBody = $this->attachGeneratedRequestExamples($requestBody, $generatedExamples);
             $document['requestBody'] = $requestBody;
@@ -166,11 +177,26 @@ final class OpenApiDocumentFactory
     /**
      * @return array<string, GeneratedOperationExample>
      */
-    private function buildGeneratedExamples(MergedOperation $operation): array
+    private function buildGeneratedExamples(MergedOperation $operation, ?OperationExampleSpec $spec = null): array
     {
-        $spec = $this->operationExampleSpecFactory->make($operation);
+        $spec ??= $this->operationExampleSpecFactory->make($operation);
 
         return $this->operationExampleGenerator->generateAll(
+            $spec,
+            $this->projectSeedFor($operation),
+            $this->exampleBaseUrl(),
+            null,
+        );
+    }
+
+    /**
+     * @return array<string, array<string, GeneratedScenarioExample>>
+     */
+    private function buildGeneratedScenarios(MergedOperation $operation, ?OperationExampleSpec $spec = null): array
+    {
+        $spec ??= $this->operationExampleSpecFactory->make($operation);
+
+        return $this->operationExampleGenerator->generateScenarios(
             $spec,
             $this->projectSeedFor($operation),
             $this->exampleBaseUrl(),
@@ -333,6 +359,25 @@ final class OpenApiDocumentFactory
         return $extension;
     }
 
+    /**
+     * @param  array<string, array<string, GeneratedScenarioExample>>  $generatedScenarios
+     * @return array<string, mixed>
+     */
+    private function generatedScenariosExtension(array $generatedScenarios): array
+    {
+        $extension = [];
+
+        foreach ($generatedScenarios as $mode => $scenarios) {
+            foreach ($scenarios as $key => $generatedScenario) {
+                $extension[$mode][$key] = $generatedScenario->toArray();
+            }
+        }
+
+        ksort($extension);
+
+        return $extension;
+    }
+
     private function shouldExposeAuthProfile(AuthProfile $profile): bool
     {
         return $profile->requiresAuthentication
@@ -463,7 +508,7 @@ final class OpenApiDocumentFactory
 
         $document['content'] = [
             $contentType => [
-                'schema' => $schema,
+                'schema' => $this->hydrateSchemaDescriptions($schema),
             ],
         ];
 
@@ -590,7 +635,7 @@ final class OpenApiDocumentFactory
 
         $response['content'] = [
             'application/json' => [
-                'schema' => $schema,
+                'schema' => $this->hydrateSchemaDescriptions($schema),
             ],
         ];
 
@@ -721,6 +766,7 @@ final class OpenApiDocumentFactory
                 'in' => 'path',
                 'required' => true,
                 'schema' => $this->buildPathParameterSchema($parameterName, $operation),
+                'description' => $this->generatedPathParameterDescription($parameterName, $operation),
             ];
 
             $extension = [];
@@ -760,7 +806,7 @@ final class OpenApiDocumentFactory
 
         $schema['pattern'] = $pattern;
 
-        return $schema;
+        return $this->hydrateSchemaDescriptions($schema);
     }
 
     private function looksNumericPattern(string $pattern): bool
@@ -769,6 +815,166 @@ final class OpenApiDocumentFactory
         $normalized = preg_replace('/^\^|\$$/', '', $normalized) ?? $normalized;
 
         return in_array($normalized, ['[0-9]+', '\d+', '[1-9][0-9]*'], true);
+    }
+
+    private function generatedOperationSummary(MergedOperation $operation, string $method): string
+    {
+        $resource = $this->humanizedResourceName($operation->uri);
+
+        return match (strtoupper($method)) {
+            'GET' => str_contains($operation->uri, '{') ? sprintf('Show %s', $resource) : sprintf('List %s', $this->pluralizeLabel($resource)),
+            'POST' => sprintf('Create %s', $resource),
+            'PUT', 'PATCH' => sprintf('Update %s', $resource),
+            'DELETE' => sprintf('Delete %s', $resource),
+            default => sprintf('%s %s', strtoupper($method), $resource),
+        };
+    }
+
+    private function generatedOperationDescription(MergedOperation $operation, string $method): ?string
+    {
+        $segments = [
+            $this->generatedOperationSummary($operation, $method).'.',
+        ];
+
+        if ($operation->requiresAuthentication()) {
+            $segments[] = 'Requires authentication.';
+        }
+
+        if ($operation->requiresAuthorization()) {
+            $segments[] = 'Authorization rules apply before the handler runs.';
+        }
+
+        if ($operation->prefix !== null && $operation->prefix !== '') {
+            $segments[] = sprintf('Published under the "%s" route group.', $operation->prefix);
+        }
+
+        return implode(' ', array_filter($segments));
+    }
+
+    private function generatedPathParameterDescription(string $parameterName, MergedOperation $operation): string
+    {
+        $resource = $this->humanizedResourceName($operation->uri);
+        $label = $this->humanizeToken($parameterName);
+
+        if ($parameterName === 'id' || str_ends_with($parameterName, '_id')) {
+            return sprintf('Path identifier for the %s resource.', strtolower($resource));
+        }
+
+        return sprintf('Path parameter for %s on the %s route.', strtolower($label), strtolower($resource));
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     */
+    private function generatedFieldDescription(string $path, array $schema): string
+    {
+        $leaf = $this->leafToken($path);
+        $label = $this->humanizeToken($leaf);
+        $enum = is_array($schema['enum'] ?? null) ? array_values($schema['enum']) : [];
+        $format = is_string($schema['format'] ?? null) ? (string) $schema['format'] : null;
+        $type = is_string($schema['type'] ?? null) ? (string) $schema['type'] : 'value';
+
+        $base = match (true) {
+            $leaf === 'email' || $format === 'email' => 'Email address.',
+            str_contains($leaf, 'password') => 'Password used by the endpoint.',
+            $leaf === 'id' || str_ends_with($leaf, '_id') => sprintf('Identifier for %s.', strtolower($label)),
+            in_array($leaf, ['created_at', 'updated_at', 'deleted_at'], true) => sprintf('Timestamp for %s.', strtolower($label)),
+            $format === 'uuid' => sprintf('UUID value for %s.', strtolower($label)),
+            $format === 'date-time' => sprintf('Date and time for %s.', strtolower($label)),
+            $format === 'date' => sprintf('Date value for %s.', strtolower($label)),
+            $type === 'boolean' => sprintf('Boolean flag for %s.', strtolower($label)),
+            $type === 'array' => sprintf('Collection of %s entries.', strtolower($label)),
+            $type === 'object' => sprintf('Object payload for %s.', strtolower($label)),
+            $type === 'integer' => sprintf('Integer value for %s.', strtolower($label)),
+            $type === 'number' => sprintf('Numeric value for %s.', strtolower($label)),
+            default => sprintf('String value for %s.', strtolower($label)),
+        };
+
+        if ($enum !== []) {
+            $allowedValues = implode(', ', array_map(static fn (mixed $value): string => (string) $value, $enum));
+
+            return sprintf('%s Allowed values: %s.', $base, $allowedValues);
+        }
+
+        return $base;
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @return array<string, mixed>
+     */
+    private function hydrateSchemaDescriptions(array $schema, string $path = ''): array
+    {
+        if ($path !== '' && ! is_string($schema['description'] ?? null)) {
+            $schema['description'] = $this->generatedFieldDescription($path, $schema);
+        }
+
+        if (is_array($schema['properties'] ?? null)) {
+            foreach ($schema['properties'] as $property => $childSchema) {
+                if (! is_array($childSchema) || ! is_string($property)) {
+                    continue;
+                }
+
+                $childPath = $path === '' ? $property : $path.'.'.$property;
+                $schema['properties'][$property] = $this->hydrateSchemaDescriptions($childSchema, $childPath);
+            }
+        }
+
+        if (is_array($schema['items'] ?? null)) {
+            $itemPath = $path === '' ? 'items[]' : $path.'[]';
+            $schema['items'] = $this->hydrateSchemaDescriptions($schema['items'], $itemPath);
+        }
+
+        return $schema;
+    }
+
+    private function humanizedResourceName(string $uri): string
+    {
+        $segments = array_values(array_filter(explode('/', trim($uri, '/')), static fn (string $segment): bool => $segment !== ''));
+        $segments = array_values(array_filter($segments, static fn (string $segment): bool => ! str_starts_with($segment, '{')));
+        $resource = $segments !== [] ? end($segments) : 'resource';
+
+        return $this->humanizeToken($this->singularizeToken((string) ($resource ?: 'resource')));
+    }
+
+    private function pluralizeLabel(string $value): string
+    {
+        return str_ends_with(strtolower($value), 's') ? $value : $value.'s';
+    }
+
+    private function leafToken(string $path): string
+    {
+        $segments = preg_split('/[.\[]/', $path) ?: [$path];
+        $segments = array_values(array_filter($segments, static fn (string $segment): bool => $segment !== '' && $segment !== ']'));
+
+        return strtolower((string) end($segments));
+    }
+
+    private function humanizeToken(string $value): string
+    {
+        $normalized = str_replace(['[]', '_', '-'], [' items', ' ', ' '], strtolower($value));
+        $normalized = trim(preg_replace('/\s+/', ' ', $normalized) ?? $normalized);
+
+        return ucfirst($normalized !== '' ? $normalized : 'value');
+    }
+
+    private function singularizeToken(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+
+        if (str_ends_with($normalized, 'ies')) {
+            return substr($normalized, 0, -3).'y';
+        }
+
+        if (str_ends_with($normalized, 'sses')) {
+            return substr($normalized, 0, -2);
+        }
+
+        if (str_ends_with($normalized, 's') && strlen($normalized) > 3) {
+            return substr($normalized, 0, -1);
+        }
+
+        return $normalized;
     }
 
     /**
@@ -781,10 +987,11 @@ final class OpenApiDocumentFactory
             return [];
         }
 
+        $effectiveLocation = EffectiveRequestFieldLocation::query($operation, $request, $requestFieldIndex);
         $queryShape = is_array($request['query'] ?? null) ? $request['query'] : [];
         $parameterNames = $this->orderedNames(
             array_keys($queryShape),
-            $this->overlayChildNames($requestFieldIndex, 'query', ''),
+            $this->overlayChildNames($requestFieldIndex, $effectiveLocation, ''),
         );
         if ($parameterNames === []) {
             return [];
@@ -793,22 +1000,23 @@ final class OpenApiDocumentFactory
         $parameters = [];
         foreach ($parameterNames as $name) {
             $shape = is_array($queryShape[$name] ?? null) ? $queryShape[$name] : [];
-            $field = $requestFieldIndex->get('query', $name);
+            $field = $requestFieldIndex->get($effectiveLocation, $name);
             $parameter = [
                 'name' => (string) $name,
                 'in' => 'query',
                 'required' => (bool) ($field['required'] ?? false),
-                'schema' => $this->buildOverlaySchema($shape, $requestFieldIndex, 'query', (string) $name, 'string'),
+                'schema' => $this->buildOverlaySchema($shape, $requestFieldIndex, $effectiveLocation, (string) $name, 'string'),
+                'description' => $this->generatedFieldDescription((string) $name, $this->buildOverlaySchema($shape, $requestFieldIndex, $effectiveLocation, (string) $name, 'string')),
             ];
 
-            if ($this->queryParameterUsesCsvEncoding((string) $name, $shape, $field, $requestFieldIndex)) {
+            if ($this->queryParameterUsesCsvEncoding((string) $name, $shape, $field, $requestFieldIndex, $effectiveLocation)) {
                 $parameter['schema'] = ['type' => 'string'];
-            } elseif ($this->queryParameterUsesDeepObject((string) $name, $shape, $field, $requestFieldIndex)) {
+            } elseif ($this->queryParameterUsesDeepObject((string) $name, $shape, $field, $requestFieldIndex, $effectiveLocation)) {
                 $parameter['style'] = 'deepObject';
                 $parameter['explode'] = true;
             }
 
-            $extension = $this->buildQueryParameterExtension((string) $name, $shape, $requestFieldIndex);
+            $extension = $this->buildQueryParameterExtension((string) $name, $shape, $requestFieldIndex, $effectiveLocation);
             if ($extension !== []) {
                 $parameter['x-oxcribe'] = $extension;
             }
@@ -884,7 +1092,7 @@ final class OpenApiDocumentFactory
         }
 
         if ($properties === []) {
-            return ['type' => 'object'];
+            return $this->hydrateSchemaDescriptions(['type' => 'object']);
         }
 
         $schema = [
@@ -897,7 +1105,7 @@ final class OpenApiDocumentFactory
             $schema['required'] = $required;
         }
 
-        return $schema;
+        return $this->hydrateSchemaDescriptions($schema);
     }
 
     /**
@@ -974,24 +1182,24 @@ final class OpenApiDocumentFactory
      * @param  array<string, mixed>  $shape
      * @param  array<string, mixed>|null  $field
      */
-    private function queryParameterUsesCsvEncoding(string $name, array $shape, ?array $field, RequestFieldIndex $requestFieldIndex): bool
+    private function queryParameterUsesCsvEncoding(string $name, array $shape, ?array $field, RequestFieldIndex $requestFieldIndex, string $location = 'query'): bool
     {
         return (($field['kind'] ?? null) === 'csv')
-            || (in_array($name, ['include', 'sort'], true) && (($requestFieldIndex->allowedValues('query', $name) !== []) || $this->shapeHasChildren($shape)));
+            || (in_array($name, ['include', 'sort'], true) && (($requestFieldIndex->allowedValues($location, $name) !== []) || $this->shapeHasChildren($shape)));
     }
 
     /**
      * @param  array<string, mixed>  $shape
      * @param  array<string, mixed>|null  $field
      */
-    private function queryParameterUsesDeepObject(string $name, array $shape, ?array $field, RequestFieldIndex $requestFieldIndex): bool
+    private function queryParameterUsesDeepObject(string $name, array $shape, ?array $field, RequestFieldIndex $requestFieldIndex, string $location = 'query'): bool
     {
-        if ($this->queryParameterUsesCsvEncoding($name, $shape, $field, $requestFieldIndex)) {
+        if ($this->queryParameterUsesCsvEncoding($name, $shape, $field, $requestFieldIndex, $location)) {
             return false;
         }
 
         return $this->shapeHasChildren($shape)
-            || $this->overlayChildNames($requestFieldIndex, 'query', $name) !== []
+            || $this->overlayChildNames($requestFieldIndex, $location, $name) !== []
             || (($field['kind'] ?? null) === 'object');
     }
 
@@ -999,11 +1207,11 @@ final class OpenApiDocumentFactory
      * @param  array<string, mixed>  $shape
      * @return array<string, mixed>
      */
-    private function buildQueryParameterExtension(string $name, array $shape, RequestFieldIndex $requestFieldIndex): array
+    private function buildQueryParameterExtension(string $name, array $shape, RequestFieldIndex $requestFieldIndex, string $location = 'query'): array
     {
         $extension = [];
 
-        $allowedValues = $requestFieldIndex->allowedValues('query', $name);
+        $allowedValues = $requestFieldIndex->allowedValues($location, $name);
         if ($allowedValues === [] && in_array($name, ['include', 'sort'], true) && $this->shapeHasChildren($shape)) {
             $allowedValues = $this->flattenLeafPaths($shape);
         }
@@ -1011,7 +1219,7 @@ final class OpenApiDocumentFactory
             $extension['allowedValues'] = $allowedValues;
         }
 
-        $allowedValuesByGroup = $this->queryAllowedValuesByGroup($name, $shape, $requestFieldIndex);
+        $allowedValuesByGroup = $this->queryAllowedValuesByGroup($name, $shape, $requestFieldIndex, $location);
         if ($allowedValuesByGroup !== []) {
             $extension['allowedValuesByGroup'] = $allowedValuesByGroup;
         }
@@ -1027,12 +1235,12 @@ final class OpenApiDocumentFactory
      * @param  array<string, mixed>  $shape
      * @return array<string, list<string>>
      */
-    private function queryAllowedValuesByGroup(string $name, array $shape, RequestFieldIndex $requestFieldIndex): array
+    private function queryAllowedValuesByGroup(string $name, array $shape, RequestFieldIndex $requestFieldIndex, string $location = 'query'): array
     {
         $groups = [];
 
-        foreach ($this->overlayChildNames($requestFieldIndex, 'query', $name) as $childName) {
-            $values = $requestFieldIndex->allowedValues('query', $name.'.'.$childName);
+        foreach ($this->overlayChildNames($requestFieldIndex, $location, $name) as $childName) {
+            $values = $requestFieldIndex->allowedValues($location, $name.'.'.$childName);
             if ($values === []) {
                 continue;
             }

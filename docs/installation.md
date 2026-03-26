@@ -7,7 +7,17 @@ composer require oxhq/oxcribe
 php artisan vendor:publish --tag=oxcribe-config
 ```
 
-## 2. Build `oxinfer`
+## 2. Install Or Build `oxinfer`
+
+Fast path:
+
+```bash
+php artisan oxcribe:install-binary v0.1.0
+```
+
+That downloads the matching release binary from `oxhq/oxinfer`, verifies the published checksum, and installs it into the app-local binary path.
+
+Manual fallback:
 
 `oxcribe` shells out to a local `oxinfer` binary. `oxinfer` currently needs `GOEXPERIMENT=jsonv2` for both build and tests.
 
@@ -26,16 +36,27 @@ OXINFER_TIMEOUT=120
 
 If the binary is already on `PATH`, `OXINFER_BINARY` can stay as `oxinfer`.
 `oxcribe` also looks for `bin/oxinfer` inside the Laravel app working directory before failing.
+`oxcribe:install-binary` writes to that app-local location by default, so you normally do not need an absolute path after running it.
 
 ## 4. Run Analysis
 
 ```bash
+php artisan oxcribe:doctor
 php artisan oxcribe:analyze --pretty
 php artisan oxcribe:export-openapi --pretty
 php artisan oxcribe:publish --publish-version=dev
 ```
 
 Use `--write=/absolute/path.json` when you want stable artifacts on disk.
+
+The clean first-run path is:
+
+1. Create one workspace and one project in Oxcribe Cloud.
+2. Issue a project publish token.
+3. Set `OXCLOUD_BASE_URL` and `OXCLOUD_TOKEN` in the Laravel app.
+4. Run `php artisan oxcribe:doctor`.
+5. Run `php artisan oxcribe:publish --publish-version=<your-version>`.
+6. Open the hosted version URL, explorer URL, and changelog URL printed by the command.
 
 ## 5. Enable The Docs Endpoints
 
@@ -76,6 +97,11 @@ OXCLOUD_DEFAULT_VERSION=dev
 Then publish the current versioned docs payload:
 
 ```bash
+php artisan oxcribe:doctor
 php artisan oxcribe:publish
 php artisan oxcribe:publish --publish-version=2026.03.25
 ```
+
+On success, `oxcribe:publish` prints the exact hosted version URL plus matching explorer and changelog URLs so the first review loop can happen immediately.
+
+If the preflight fails, start with [docs/troubleshooting.md](troubleshooting.md).

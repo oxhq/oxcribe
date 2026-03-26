@@ -5,6 +5,15 @@ From this cut forward, `oxcribe` keeps the stable Laravel package contracts and 
 
 `Oxcribe` is a runtime-first Laravel package that boots your app, captures the route graph Laravel actually registered, sends a strict `AnalysisRequest` to `oxinfer`, and merges runtime truth with static analysis before emitting OpenAPI.
 
+The intended launch path is simple:
+
+1. Install `oxcribe` inside the Laravel app.
+2. Install or point to an `oxinfer` binary.
+3. Issue one project-scoped publish token from Oxcribe Cloud.
+4. Run `php artisan oxcribe:doctor`.
+5. Run `php artisan oxcribe:publish`.
+6. Open the hosted docs, explorer, and changelog for that version.
+
 ## What It Owns
 
 - boots Laravel and snapshots real routes, middleware, bindings and action references
@@ -34,6 +43,14 @@ composer require oxhq/oxcribe
 php artisan vendor:publish --tag=oxcribe-config
 ```
 
+If you do not already have `oxinfer`, install the matching release binary directly from GitHub:
+
+```bash
+php artisan oxcribe:install-binary v0.1.0
+```
+
+That command detects the local OS and architecture, downloads the release asset from `oxhq/oxinfer`, verifies its SHA-256 checksum, and installs it into the app-local binary path that `oxcribe` already resolves.
+
 ## Minimal Config
 
 ```php
@@ -53,6 +70,8 @@ return [
 php artisan oxcribe:analyze
 php artisan oxcribe:export-openapi
 php artisan oxcribe:publish
+php artisan oxcribe:doctor
+php artisan oxcribe:install-binary v0.1.0
 ```
 
 Both commands support `--write=/absolute/path.json` and `--pretty`.
@@ -98,9 +117,17 @@ OXCLOUD_DEFAULT_VERSION=dev
 Then publish:
 
 ```bash
+php artisan oxcribe:doctor
 php artisan oxcribe:publish
 php artisan oxcribe:publish --publish-version=2026.03.25
 ```
+
+On success the command prints:
+
+- the hosted version URL
+- the explorer URL for the same version
+- the changelog URL for the same version
+- the project latest URL
 
 The command sends:
 
@@ -143,6 +170,7 @@ The design lives in [docs/smart-examples-v1.md](docs/smart-examples-v1.md).
 ## Package Docs
 
 - installation: [docs/installation.md](docs/installation.md)
+- troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md)
 - compatibility and fixtures: [docs/compatibility.md](docs/compatibility.md)
 - overrides: [docs/overrides.md](docs/overrides.md)
 - smart examples: [docs/smart-examples-v1.md](docs/smart-examples-v1.md)

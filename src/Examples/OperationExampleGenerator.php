@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Oxhq\Oxcribe\Examples;
 
 use Oxhq\Oxcribe\Examples\Data\ExampleField;
+use Oxhq\Oxcribe\Examples\Data\ExampleScenario;
 use Oxhq\Oxcribe\Examples\Data\GeneratedOperationExample;
 use Oxhq\Oxcribe\Examples\Data\GeneratedRequestExample;
 use Oxhq\Oxcribe\Examples\Data\GeneratedResponseExample;
+use Oxhq\Oxcribe\Examples\Data\GeneratedScenarioExample;
 use Oxhq\Oxcribe\Examples\Data\OperationExampleSpec;
 use Oxhq\Oxcribe\Examples\Data\ScenarioContext;
 
@@ -17,22 +19,30 @@ final readonly class OperationExampleGenerator
         private ScenarioContextFactory $scenarioContextFactory = new ScenarioContextFactory,
         private DeterministicValueGenerator $valueGenerator = new DeterministicValueGenerator,
         private SnippetFactory $snippetFactory = new SnippetFactory,
+        private ScenarioResolver $scenarioResolver = new ScenarioResolver,
     ) {}
 
-    public function generate(OperationExampleSpec $spec, string $projectSeed, ExampleMode $mode, string $baseUrl = 'https://api.example.test', ?string $bearerToken = null): GeneratedOperationExample
-    {
-        $context = $this->scenarioContextFactory->make($projectSeed, $spec->endpoint, $mode);
+    public function generate(
+        OperationExampleSpec $spec,
+        string $projectSeed,
+        ExampleMode $mode,
+        string $baseUrl = 'https://api.example.test',
+        ?string $bearerToken = null,
+        ?ExampleScenario $scenario = null,
+    ): GeneratedOperationExample {
+        $scenarioSeed = $scenario !== null ? $projectSeed.'|scenario:'.$scenario->key : $projectSeed;
+        $context = $this->scenarioContextFactory->make($scenarioSeed, $spec->endpoint, $mode);
         $request = new GeneratedRequestExample(
             pathParams: $this->buildPayloadMap($spec->pathParams, $context, $mode),
             queryParams: $this->buildPayloadMap($spec->queryParams, $context, $mode),
-            body: $this->buildBodyPayload($spec->requestFields, $context, $mode),
+            body: $this->buildBodyPayload($spec->requestFields, $context, $mode, $scenario?->arrayCount),
             headers: [
                 'Accept' => 'application/json',
             ],
         );
         $response = new GeneratedResponseExample(
             status: $this->responseStatus($spec),
-            body: $this->buildBodyPayload($spec->responseFields, $context, $mode),
+            body: $this->buildBodyPayload($spec->responseFields, $context, $mode, $scenario?->arrayCount),
         );
         $snippets = $this->snippetFactory->make($spec, $request, $baseUrl, $bearerToken);
 
@@ -60,6 +70,29 @@ final readonly class OperationExampleGenerator
     }
 
     /**
+     * @return array<string, array<string, GeneratedScenarioExample>>
+     */
+    public function generateScenarios(OperationExampleSpec $spec, string $projectSeed, string $baseUrl = 'https://api.example.test', ?string $bearerToken = null): array
+    {
+        $definitions = $this->scenarioResolver->resolve($spec);
+        if ($definitions === []) {
+            return [];
+        }
+
+        $scenarios = [];
+        foreach (ExampleMode::cases() as $mode) {
+            foreach ($definitions as $definition) {
+                $scenarios[$mode->value][$definition->key] = new GeneratedScenarioExample(
+                    scenario: $definition,
+                    example: $this->generate($spec, $projectSeed, $mode, $baseUrl, $bearerToken, $definition),
+                );
+            }
+        }
+
+        return $scenarios;
+    }
+
+    /**
      * @param  list<ExampleField>  $fields
      * @return array<string, mixed>
      */
@@ -77,7 +110,7 @@ final readonly class OperationExampleGenerator
     /**
      * @param  list<ExampleField>  $fields
      */
-    private function buildBodyPayload(array $fields, ScenarioContext $context, ExampleMode $mode): mixed
+    private function buildBodyPayload(array $fields, ScenarioContext $context, ExampleMode $mode, ?int $arrayCountOverride = null): mixed
     {
         $payload = [];
         $filtered = $this->filteredFields($fields, $mode);
@@ -95,7 +128,7 @@ final readonly class OperationExampleGenerator
                 continue;
             }
 
-            $this->assignPathValue($payload, $relativePath, $field, $context, $this->arrayCount($mode));
+            $this->assignPathValue($payload, $relativePath, $field, $context, $arrayCountOverride ?? $this->arrayCount($mode));
         }
 
         return $payload === [] ? null : $payload;
@@ -132,12 +165,13 @@ final readonly class OperationExampleGenerator
      */
     private function hasDescendants(ExampleField $field, array $fields): bool
     {
-        $prefix = $field->path;
+        $prefix = $this->normalizePathNotation($field->path);
         foreach ($fields as $candidate) {
             if ($candidate->path === $field->path) {
                 continue;
             }
-            if (str_starts_with($candidate->path, $prefix.'.') || str_starts_with($candidate->path, $prefix.'[]')) {
+            $candidatePath = $this->normalizePathNotation($candidate->path);
+            if (str_starts_with($candidatePath, $prefix.'.') || str_starts_with($candidatePath, $prefix.'[]')) {
                 return true;
             }
         }
@@ -147,12 +181,13 @@ final readonly class OperationExampleGenerator
 
     private function relativeFieldPath(ExampleField $field): string
     {
+        $normalizedPath = $this->normalizePathNotation($field->path);
         $prefix = $field->location.'.';
-        if (str_starts_with($field->path, $prefix)) {
-            return substr($field->path, strlen($prefix));
+        if (str_starts_with($normalizedPath, $prefix)) {
+            return substr($normalizedPath, strlen($prefix));
         }
 
-        return $field->path;
+        return $normalizedPath;
     }
 
     /**
@@ -217,6 +252,16 @@ final readonly class OperationExampleGenerator
     private function arrayCount(ExampleMode $mode): int
     {
         return $mode === ExampleMode::MinimalValid ? 1 : 2;
+    }
+
+    private function normalizePathNotation(string $path): string
+    {
+        $normalized = str_replace('.*.', '[].', $path);
+        if (str_ends_with($normalized, '.*')) {
+            $normalized = substr($normalized, 0, -2).'[]';
+        }
+
+        return $normalized;
     }
 
     private function responseStatus(OperationExampleSpec $spec): ?int

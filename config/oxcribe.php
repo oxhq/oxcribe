@@ -5,8 +5,14 @@ declare(strict_types=1);
 return [
     'oxinfer' => [
         'binary' => env('OXINFER_BINARY', 'oxinfer'),
+        'install_path' => env('OXINFER_INSTALL_PATH', 'bin/oxinfer'),
         'working_directory' => env('OXINFER_WORKING_DIRECTORY'),
         'timeout' => (int) env('OXINFER_TIMEOUT', 120),
+        'release' => [
+            'repository' => env('OXINFER_RELEASE_REPOSITORY', 'oxhq/oxinfer'),
+            'base_url' => env('OXINFER_RELEASE_BASE_URL', 'https://github.com'),
+            'version' => env('OXINFER_RELEASE_VERSION'),
+        ],
     ],
 
     'analysis' => [

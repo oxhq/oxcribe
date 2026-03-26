@@ -42,6 +42,20 @@ it('normalizes openapi documents into a stable viewer payload', function () {
                                 'curl' => 'curl -X POST https://api.example.test/login',
                             ],
                         ],
+                        'scenarios' => [
+                            'happy_path' => [
+                                'single_item' => [
+                                    'key' => 'single_item',
+                                    'label' => 'Single item',
+                                    'request' => [
+                                        'body' => ['email' => 'ana.lopez@acme.test'],
+                                    ],
+                                    'response' => [
+                                        'status' => 200,
+                                    ],
+                                ],
+                            ],
+                        ],
                     ],
                 ],
             ],
@@ -102,6 +116,22 @@ it('normalizes openapi documents into a stable viewer payload', function () {
             'snippets' => [
                 'happy_path' => [
                     'curl' => 'curl -X POST https://api.example.test/login',
+                ],
+            ],
+            'scenarios' => [
+                'happy_path' => [
+                    'single_item' => [
+                        'key' => 'single_item',
+                        'label' => 'Single item',
+                        'request' => [
+                            'body' => [
+                                'email' => 'ana.lopez@acme.test',
+                            ],
+                        ],
+                        'response' => [
+                            'status' => 200,
+                        ],
+                    ],
                 ],
             ],
         ])

@@ -146,7 +146,18 @@ it('serves the local docs page, openapi document, and docs payload from the pack
         ->assertSee('id="oxcribe-docs-app"', false)
         ->assertSee('/oxcribe/openapi.json', false)
         ->assertSee('/oxcribe/docs/payload.json', false)
-        ->assertSee('https://unpkg.com/vue@3/dist/vue.global.prod.js', false);
+        ->assertSee('/oxcribe/assets/docs-viewer.css', false)
+        ->assertSee('/oxcribe/assets/docs-viewer.js', false)
+        ->assertDontSee('https://unpkg.com/vue@3/dist/vue.global.prod.js', false);
+
+    $this->get('/oxcribe/assets/docs-viewer.css')
+        ->assertOk()
+        ->assertHeader('content-type', 'text/css; charset=UTF-8');
+
+    $this->get('/oxcribe/assets/docs-viewer.js')
+        ->assertOk()
+        ->assertHeader('content-type', 'application/javascript; charset=UTF-8')
+        ->assertSee('Oxcribe Local Viewer');
 
     $this->get('/oxcribe/openapi.json')
         ->assertOk()
@@ -157,7 +168,7 @@ it('serves the local docs page, openapi document, and docs payload from the pack
     $this->get('/oxcribe/docs/payload.json')
         ->assertOk()
         ->assertJsonPath('contractVersion', 'oxcribe.docs.v1')
-        ->assertJsonPath('info.title', 'Laravel API')
+        ->assertJsonPath('info.title', 'Laravel')
         ->assertJsonPath('operations.0.path', '/users')
         ->assertJsonPath('operations.0.method', 'GET')
         ->assertJsonPath('meta.operationCount', 1)

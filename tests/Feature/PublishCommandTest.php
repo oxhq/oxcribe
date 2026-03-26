@@ -47,16 +47,21 @@ it('publishes openapi and docs payload to oxcloud', function () {
     ]);
 
     $this->artisan('oxcribe:publish')
-        ->expectsOutput('Published 2026.03.25 to oxcloud.')
+        ->expectsOutput('Published 2026.03.25 to Oxcribe Cloud.')
         ->expectsOutput('Version URL: https://oxcloud.example.test/docs/acme/platform/2026.03.25')
+        ->expectsOutput('Explorer URL: https://oxcloud.example.test/docs/acme/platform/2026.03.25/explorer')
+        ->expectsOutput('Changelog URL: https://oxcloud.example.test/docs/acme/platform/2026.03.25/changelog')
         ->expectsOutput('Project URL: https://oxcloud.example.test/docs/acme/platform')
+        ->expectsOutput('Next: open the version URL and review docs, explorer, and changelog.')
+        ->expectsOutput('Then: decide whether to keep it public, require review, or share it by link/domain.')
         ->assertSuccessful();
 
     Http::assertSent(function (Request $request): bool {
-        $payload = $request->data();
+        $payload = decodePublishRequestPayload($request);
 
         return $request->url() === 'https://oxcloud.example.test/api/publish/v1'
             && $request->hasHeader('Authorization', 'Bearer test-token')
+            && $request->hasHeader('Content-Encoding', 'gzip')
             && ($payload['contractVersion'] ?? null) === 'oxcloud.publish.v1'
             && ($payload['version'] ?? null) === '2026.03.25'
             && ($payload['source']['appName'] ?? null) === 'Oxcloud Test App'
@@ -79,22 +84,38 @@ it('resolves publish version precedence from option, config, app version, then d
     Http::fake(['*' => Http::response(['versionUrl' => 'https://oxcloud.example.test/docs/acme/platform/from-option'])]);
 
     $this->artisan('oxcribe:publish', ['--publish-version' => 'from-option'])->assertSuccessful();
-    Http::assertSent(fn (Request $request): bool => ($request->data()['version'] ?? null) === 'from-option');
+    Http::assertSent(fn (Request $request): bool => (decodePublishRequestPayload($request)['version'] ?? null) === 'from-option');
 
     Http::fake(['*' => Http::response(['versionUrl' => 'https://oxcloud.example.test/docs/acme/platform/from-config'])]);
     $this->artisan('oxcribe:publish')->assertSuccessful();
-    Http::assertSent(fn (Request $request): bool => ($request->data()['version'] ?? null) === 'from-config');
+    Http::assertSent(fn (Request $request): bool => (decodePublishRequestPayload($request)['version'] ?? null) === 'from-config');
 
     config()->set('oxcribe.publish.default_version', null);
     Http::fake(['*' => Http::response(['versionUrl' => 'https://oxcloud.example.test/docs/acme/platform/from-app'])]);
     $this->artisan('oxcribe:publish')->assertSuccessful();
-    Http::assertSent(fn (Request $request): bool => ($request->data()['version'] ?? null) === 'from-app');
+    Http::assertSent(fn (Request $request): bool => (decodePublishRequestPayload($request)['version'] ?? null) === 'from-app');
 
     config()->set('app.version', null);
     Http::fake(['*' => Http::response(['versionUrl' => 'https://oxcloud.example.test/docs/acme/platform/dev'])]);
     $this->artisan('oxcribe:publish')->assertSuccessful();
-    Http::assertSent(fn (Request $request): bool => ($request->data()['version'] ?? null) === 'dev');
+    Http::assertSent(fn (Request $request): bool => (decodePublishRequestPayload($request)['version'] ?? null) === 'dev');
 });
+
+/**
+ * @return array<string, mixed>
+ */
+function decodePublishRequestPayload(Request $request): array
+{
+    if ($request->hasHeader('Content-Encoding', 'gzip')) {
+        $decoded = gzdecode($request->body());
+
+        return is_string($decoded)
+            ? (json_decode($decoded, true) ?: [])
+            : [];
+    }
+
+    return $request->data();
+}
 
 function stubOxcribeAnalyzeDependencies(): void
 {

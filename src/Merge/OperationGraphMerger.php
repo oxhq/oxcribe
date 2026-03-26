@@ -9,9 +9,14 @@ use Oxhq\Oxcribe\Data\MergedOperation;
 use Oxhq\Oxcribe\Data\OperationGraph;
 use Oxhq\Oxcribe\Data\RouteMatch;
 use Oxhq\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Support\FormRequestFieldResolver;
 
 final class OperationGraphMerger
 {
+    public function __construct(
+        private readonly FormRequestFieldResolver $formRequestFieldResolver = new FormRequestFieldResolver,
+    ) {}
+
     public function merge(RuntimeSnapshot $runtime, AnalysisResponse $response): OperationGraph
     {
         $routeMatches = [];
@@ -36,6 +41,7 @@ final class OperationGraphMerger
             $controller = $routeMatch->actionKey !== null
                 ? ($controllers[$routeMatch->actionKey] ?? null)
                 : null;
+            $controller = $this->formRequestFieldResolver->augment($route->action, $route->methods, $controller);
 
             $operations[] = new MergedOperation(
                 routeId: $route->routeId,

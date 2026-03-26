@@ -127,3 +127,56 @@ it('builds an operation example spec from merged runtime and static metadata', f
         ])
         ->and($spec['responseStatuses'])->toBe([201, 422]);
 });
+
+it('treats body-only GET form request fields as query params in example specs', function () {
+    $factory = new OperationExampleSpecFactory;
+
+    $operation = new MergedOperation(
+        routeId: 'route-games-index',
+        methods: ['GET'],
+        uri: 'api/games',
+        domain: null,
+        name: 'games.index',
+        prefix: 'api',
+        middleware: ['api'],
+        where: [],
+        defaults: [],
+        bindings: [],
+        action: new RouteAction('controller_method', 'App\\Http\\Controllers\\Api\\DiscoveryController', 'games'),
+        routeMatch: new RouteMatch(
+            routeId: 'route-games-index',
+            actionKind: 'controller_method',
+            matchStatus: 'matched',
+            actionKey: 'App\\Http\\Controllers\\Api\\DiscoveryController::games',
+        ),
+        controller: [
+            'fqcn' => 'App\\Http\\Controllers\\Api\\DiscoveryController',
+            'method' => 'games',
+            'request' => [
+                'fields' => [
+                    [
+                        'location' => 'body',
+                        'path' => 'search',
+                        'type' => 'string',
+                        'required' => false,
+                        'nullable' => false,
+                    ],
+                    [
+                        'location' => 'body',
+                        'path' => 'limit',
+                        'type' => 'integer',
+                        'required' => false,
+                        'nullable' => false,
+                    ],
+                ],
+            ],
+            'responses' => [],
+        ],
+    );
+
+    $spec = $factory->make($operation)->toArray();
+
+    expect($spec['queryParams'])->toHaveCount(2)
+        ->and(collect($spec['queryParams'])->pluck('name')->all())->toBe(['limit', 'search'])
+        ->and($spec['requestFields'])->toBe([]);
+});

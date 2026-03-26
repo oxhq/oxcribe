@@ -73,6 +73,7 @@ final class DocsPayloadFactory
                     'responses' => (array) ($operation['responses'] ?? []),
                     'examples' => (array) ($xOxcribe['examples'] ?? []),
                     'snippets' => (array) ($xOxcribe['snippets'] ?? []),
+                    'scenarios' => (array) ($xOxcribe['scenarios'] ?? []),
                     'runtime' => array_filter([
                         'routeId' => is_string($xOxcribe['routeId'] ?? null) ? (string) $xOxcribe['routeId'] : null,
                         'actionKey' => is_string($xOxcribe['actionKey'] ?? null) ? (string) $xOxcribe['actionKey'] : null,

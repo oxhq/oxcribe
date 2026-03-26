@@ -17,6 +17,8 @@ final class DocsPageController
         return view('oxcribe::docs', [
             'payloadUrl' => route('oxcribe.docs.payload'),
             'openApiUrl' => route('oxcribe.openapi'),
+            'viewerCssUrl' => route('oxcribe.docs.asset', ['asset' => 'docs-viewer.css']),
+            'viewerJsUrl' => route('oxcribe.docs.asset', ['asset' => 'docs-viewer.js']),
             'title' => (string) config('app.name', 'Laravel API').' Docs',
         ]);
     }

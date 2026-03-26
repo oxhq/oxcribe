@@ -104,6 +104,45 @@ it('supports minimal and full collection-aware examples for store operations', f
         ->and($full['snippets']['curl'])->toContain('?role=admin');
 });
 
+it('derives named scenarios for collection-heavy operations', function () {
+    $generator = new OperationExampleGenerator;
+
+    $spec = new OperationExampleSpec(
+        endpoint: new EndpointExampleContext(
+            method: 'POST',
+            path: '/api/orders',
+            routeName: 'orders.store',
+            actionKey: 'App\\Http\\Controllers\\OrderController::store',
+            operationKind: 'orders.store',
+        ),
+        requestFields: [
+            exampleField('body.items[]', 'body', 'array', 'array', true, false, collection: true),
+            exampleField('body.items[].sku', 'body', 'string', 'string', true, false),
+            exampleField('body.items[].quantity', 'body', 'integer', 'quantity', true, false),
+        ],
+        responseFields: [
+            exampleField('response.data.items[]', 'response', 'array', 'array', true, false, collection: true),
+            exampleField('response.data.items[].sku', 'response', 'string', 'string', true, false),
+        ],
+        responseStatuses: [201],
+    );
+
+    $scenarios = $generator->generateScenarios($spec, 'project-orders');
+
+    $single = $scenarios['happy_path']['single_item'];
+    $multiple = $scenarios['happy_path']['multiple_items'];
+
+    expect($scenarios)->toHaveKeys(['minimal_valid', 'happy_path', 'realistic_full'])
+        ->and($scenarios['happy_path'])->toHaveKeys(['single_item', 'multiple_items'])
+        ->and($single->toArray())->toMatchArray([
+            'key' => 'single_item',
+            'label' => 'Single item',
+        ])
+        ->and($single->example->request->body['items'])->toHaveCount(1)
+        ->and($single->example->request->body['items'][0])->toHaveKeys(['sku', 'quantity'])
+        ->and($multiple->example->request->body['items'])->toHaveCount(3);
+});
+
 /**
  * @param  list<string>  $allowedValues
  */

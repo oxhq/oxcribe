@@ -103,6 +103,248 @@ it('merges runtime routes with oxinfer controller matches', function () {
         ]);
 });
 
+it('promotes body-only GET request fields into query parameters', function () {
+    $runtime = new RuntimeSnapshot(
+        app: new AppSnapshot(
+            basePath: base_path(),
+            laravelVersion: '12.0.0',
+            phpVersion: PHP_VERSION,
+            appEnv: 'testing',
+        ),
+        routes: [
+            new RouteSnapshot(
+                routeId: 'route-games-index',
+                methods: ['GET'],
+                uri: 'api/games',
+                domain: null,
+                name: 'games.index',
+                prefix: 'api',
+                middleware: ['api'],
+                where: [],
+                defaults: [],
+                bindings: [],
+                action: new RouteAction('controller_method', 'App\\Http\\Controllers\\Api\\DiscoveryController', 'games'),
+            ),
+        ],
+    );
+
+    $response = AnalysisResponse::fromArray([
+        'contractVersion' => 'oxcribe.oxinfer.v2',
+        'requestId' => 'req-query-fallback',
+        'runtimeFingerprint' => 'fp-query-fallback',
+        'status' => 'ok',
+        'meta' => [
+            'oxinferVersion' => '0.1.0',
+            'partial' => false,
+            'stats' => [
+                'filesParsed' => 1,
+                'skipped' => 0,
+                'durationMs' => 0,
+            ],
+            'diagnosticCounts' => [
+                'info' => 0,
+                'warn' => 0,
+                'error' => 0,
+            ],
+        ],
+        'delta' => [
+            'meta' => [
+                'partial' => false,
+                'stats' => [
+                    'filesParsed' => 1,
+                    'skipped' => 0,
+                    'durationMs' => 0,
+                ],
+            ],
+            'controllers' => [
+                [
+                    'fqcn' => 'App\\Http\\Controllers\\Api\\DiscoveryController',
+                    'method' => 'games',
+                    'request' => [
+                        'fields' => [
+                            [
+                                'location' => 'body',
+                                'path' => 'search',
+                                'type' => 'string',
+                                'required' => false,
+                                'nullable' => false,
+                            ],
+                            [
+                                'location' => 'body',
+                                'path' => 'limit',
+                                'type' => 'integer',
+                                'required' => false,
+                                'nullable' => false,
+                            ],
+                        ],
+                    ],
+                    'responses' => [
+                        [
+                            'status' => 200,
+                            'kind' => 'json_object',
+                            'bodySchema' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'data' => [
+                                        'type' => 'array',
+                                        'items' => [
+                                            'type' => 'string',
+                                        ],
+                                    ],
+                                ],
+                                'required' => ['data'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'models' => [],
+            'polymorphic' => [],
+            'broadcast' => [],
+        ],
+        'routeMatches' => [
+            [
+                'routeId' => 'route-games-index',
+                'actionKind' => 'controller_method',
+                'actionKey' => 'App\\Http\\Controllers\\Api\\DiscoveryController::games',
+                'matchStatus' => 'matched',
+            ],
+        ],
+        'diagnostics' => [],
+    ]);
+
+    $graph = app(OperationGraphMerger::class)->merge($runtime, $response);
+    $document = app(OpenApiDocumentFactory::class)->make($graph, config('oxcribe.openapi'));
+    $operation = $document['paths']['/api/games']['get'];
+    $parameters = collect($operation['parameters'])->keyBy('name');
+
+    expect($parameters->keys()->all())->toBe(['limit', 'search'])
+        ->and($parameters['limit'])->toMatchArray([
+            'in' => 'query',
+            'required' => false,
+            'schema' => [
+                'type' => 'integer',
+            ],
+        ])
+        ->and($parameters['search'])->toMatchArray([
+            'in' => 'query',
+            'required' => false,
+            'schema' => [
+                'type' => 'string',
+            ],
+        ])
+        ->and(isset($operation['requestBody']))->toBeFalse();
+});
+
+it('hydrates GET query parameters from form request rules at runtime when static request fields are missing', function () {
+    require_once __DIR__.'/../Fixtures/Requests/GameSearchRequest.php';
+    require_once __DIR__.'/../Fixtures/Controllers/GameSearchController.php';
+
+    $runtime = new RuntimeSnapshot(
+        app: new AppSnapshot(
+            basePath: base_path(),
+            laravelVersion: '12.0.0',
+            phpVersion: PHP_VERSION,
+            appEnv: 'testing',
+        ),
+        routes: [
+            new RouteSnapshot(
+                routeId: 'route-games-search',
+                methods: ['GET'],
+                uri: 'api/games',
+                domain: null,
+                name: 'games.index',
+                prefix: 'api',
+                middleware: ['api'],
+                where: [],
+                defaults: [],
+                bindings: [],
+                action: new RouteAction('controller_method', 'Tests\\Fixtures\\Controllers\\GameSearchController', 'index'),
+            ),
+        ],
+    );
+
+    $response = AnalysisResponse::fromArray([
+        'contractVersion' => 'oxcribe.oxinfer.v2',
+        'requestId' => 'req-form-request-runtime',
+        'runtimeFingerprint' => 'fp-form-request-runtime',
+        'status' => 'ok',
+        'meta' => [
+            'oxinferVersion' => '0.1.0',
+            'partial' => false,
+            'stats' => [
+                'filesParsed' => 1,
+                'skipped' => 0,
+                'durationMs' => 0,
+            ],
+            'diagnosticCounts' => [
+                'info' => 0,
+                'warn' => 0,
+                'error' => 0,
+            ],
+        ],
+        'delta' => [
+            'meta' => [
+                'partial' => false,
+                'stats' => [
+                    'filesParsed' => 1,
+                    'skipped' => 0,
+                    'durationMs' => 0,
+                ],
+            ],
+            'controllers' => [
+                [
+                    'fqcn' => 'Tests\\Fixtures\\Controllers\\GameSearchController',
+                    'method' => 'index',
+                    'responses' => [
+                        [
+                            'status' => 200,
+                            'kind' => 'json_object',
+                            'bodySchema' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'data' => [
+                                        'type' => 'array',
+                                        'items' => [
+                                            'type' => 'string',
+                                        ],
+                                    ],
+                                ],
+                                'required' => ['data'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'models' => [],
+            'polymorphic' => [],
+            'broadcast' => [],
+        ],
+        'routeMatches' => [
+            [
+                'routeId' => 'route-games-search',
+                'actionKind' => 'controller_method',
+                'actionKey' => 'Tests\\Fixtures\\Controllers\\GameSearchController::index',
+                'matchStatus' => 'matched',
+            ],
+        ],
+        'diagnostics' => [],
+    ]);
+
+    $graph = app(OperationGraphMerger::class)->merge($runtime, $response);
+    $document = app(OpenApiDocumentFactory::class)->make($graph, config('oxcribe.openapi'));
+    $operation = $document['paths']['/api/games']['get'];
+    $parameters = collect($operation['parameters'])->keyBy('name');
+
+    expect($parameters->keys()->all())->toBe(['limit', 'search'])
+        ->and($parameters['limit']['in'])->toBe('query')
+        ->and($parameters['limit']['required'])->toBeFalse()
+        ->and($parameters['limit']['schema']['type'])->toContain('integer')
+        ->and($parameters['search']['in'])->toBe('query')
+        ->and($parameters['search']['required'])->toBeFalse()
+        ->and($parameters['search']['schema']['type'])->toContain('string');
+});
+
 it('builds an openapi document from the merged graph', function () {
     $runtime = new RuntimeSnapshot(
         app: new AppSnapshot(
@@ -281,7 +523,7 @@ it('builds an openapi document from the merged graph', function () {
     expect($document)->toMatchArray([
         'openapi' => '3.1.0',
         'info' => [
-            'title' => 'Laravel API',
+            'title' => 'Laravel',
             'version' => '0.1.0',
         ],
     ])
@@ -310,6 +552,96 @@ it('builds an openapi document from the merged graph', function () {
             'type' => 'http',
             'scheme' => 'bearer',
         ]);
+});
+
+it('generates fallback summaries and field descriptions when code does not provide them', function () {
+    $runtime = new RuntimeSnapshot(
+        app: new AppSnapshot(
+            basePath: base_path(),
+            laravelVersion: '12.0.0',
+            phpVersion: PHP_VERSION,
+            appEnv: 'testing',
+        ),
+        routes: [
+            new RouteSnapshot(
+                routeId: 'route-users-store',
+                methods: ['POST'],
+                uri: 'users',
+                domain: null,
+                name: null,
+                prefix: 'api',
+                middleware: ['api', 'auth:sanctum'],
+                where: [],
+                defaults: [],
+                bindings: [],
+                action: new RouteAction('controller_method', 'App\\Http\\Controllers\\UserStoreController', 'store'),
+            ),
+        ],
+    );
+
+    $response = AnalysisResponse::fromArray([
+        'contractVersion' => 'oxcribe.oxinfer.v2',
+        'requestId' => 'req-generated-description',
+        'runtimeFingerprint' => 'fp-generated-description',
+        'status' => 'ok',
+        'meta' => [
+            'oxinferVersion' => '0.1.0',
+            'partial' => false,
+            'stats' => ['filesParsed' => 1, 'skipped' => 0, 'durationMs' => 0],
+            'diagnosticCounts' => ['info' => 0, 'warn' => 0, 'error' => 0],
+        ],
+        'delta' => [
+            'meta' => [
+                'partial' => false,
+                'stats' => ['filesParsed' => 1, 'skipped' => 0, 'durationMs' => 0],
+            ],
+            'controllers' => [
+                [
+                    'fqcn' => 'App\\Http\\Controllers\\UserStoreController',
+                    'method' => 'store',
+                    'http' => [
+                        'status' => 201,
+                        'explicit' => true,
+                    ],
+                    'request' => [
+                        'contentTypes' => ['application/json'],
+                        'fields' => [
+                            [
+                                'location' => 'body',
+                                'path' => 'email',
+                                'kind' => 'scalar',
+                                'scalarType' => 'string',
+                                'format' => 'email',
+                                'required' => true,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'models' => [],
+            'polymorphic' => [],
+            'broadcast' => [],
+        ],
+        'routeMatches' => [
+            [
+                'routeId' => 'route-users-store',
+                'actionKind' => 'controller_method',
+                'actionKey' => 'App\\Http\\Controllers\\UserStoreController::store',
+                'matchStatus' => 'matched',
+            ],
+        ],
+        'diagnostics' => [],
+    ]);
+
+    $graph = app(OperationGraphMerger::class)->merge($runtime, $response);
+    $document = app(OpenApiDocumentFactory::class)->make($graph, config('oxcribe.openapi'));
+
+    expect($document['paths']['/users']['post'])->toMatchArray([
+        'summary' => 'Create User',
+    ])
+        ->and($document['paths']['/users']['post']['description'])->toContain('Requires authentication.')
+        ->and($document['paths']['/users']['post']['requestBody']['content']['application/json']['schema']['properties']['email']['description'])
+        ->toBe('Email address.');
 });
 
 it('builds anonymous collection response envelopes from collection resource usage', function () {
@@ -982,6 +1314,166 @@ it('attaches generated request and response examples plus snippets to openapi op
         ->and($operation['x-oxcribe']['snippets']['happy_path']['axios'])->toContain('axios(');
 });
 
+it('emits additive named scenarios for collection-heavy operations', function () {
+    $runtime = new RuntimeSnapshot(
+        app: new AppSnapshot(
+            basePath: base_path(),
+            laravelVersion: '12.0.0',
+            phpVersion: PHP_VERSION,
+            appEnv: 'testing',
+        ),
+        routes: [
+            new RouteSnapshot(
+                routeId: 'route-orders-store',
+                methods: ['POST'],
+                uri: 'orders',
+                domain: null,
+                name: 'orders.store',
+                prefix: null,
+                middleware: ['api'],
+                where: [],
+                defaults: [],
+                bindings: [],
+                action: new RouteAction('controller_method', 'App\\Http\\Controllers\\OrderController', 'store'),
+            ),
+        ],
+    );
+
+    $response = AnalysisResponse::fromArray([
+        'contractVersion' => 'oxcribe.oxinfer.v2',
+        'requestId' => 'req-orders',
+        'runtimeFingerprint' => 'fp-orders',
+        'status' => 'ok',
+        'meta' => [
+            'oxinferVersion' => '0.1.0',
+            'partial' => false,
+            'stats' => [
+                'filesParsed' => 2,
+                'skipped' => 0,
+                'durationMs' => 0,
+            ],
+            'diagnosticCounts' => [
+                'info' => 0,
+                'warn' => 0,
+                'error' => 0,
+            ],
+        ],
+        'delta' => [
+            'meta' => [
+                'partial' => false,
+                'stats' => [
+                    'filesParsed' => 2,
+                    'skipped' => 0,
+                    'durationMs' => 0,
+                ],
+            ],
+            'controllers' => [
+                [
+                    'fqcn' => 'App\\Http\\Controllers\\OrderController',
+                    'method' => 'store',
+                    'http' => [
+                        'status' => 201,
+                        'explicit' => true,
+                    ],
+                    'request' => [
+                        'contentTypes' => ['application/json'],
+                        'fields' => [
+                            [
+                                'location' => 'body',
+                                'path' => 'items',
+                                'kind' => 'array',
+                                'type' => 'array',
+                                'required' => true,
+                                'optional' => false,
+                                'source' => 'validation.rule',
+                                'via' => 'array',
+                            ],
+                            [
+                                'location' => 'body',
+                                'path' => 'items.*.sku',
+                                'kind' => 'scalar',
+                                'type' => 'string',
+                                'scalarType' => 'string',
+                                'required' => true,
+                                'optional' => false,
+                                'source' => 'validation.rule',
+                                'via' => 'string',
+                            ],
+                            [
+                                'location' => 'body',
+                                'path' => 'items.*.quantity',
+                                'kind' => 'scalar',
+                                'type' => 'integer',
+                                'scalarType' => 'integer',
+                                'required' => true,
+                                'optional' => false,
+                                'source' => 'validation.rule',
+                                'via' => 'integer',
+                            ],
+                        ],
+                    ],
+                    'responses' => [
+                        [
+                            'kind' => 'json_object',
+                            'status' => 201,
+                            'explicit' => true,
+                            'contentType' => 'application/json',
+                            'bodySchema' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'data' => [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'items' => [
+                                                'type' => 'array',
+                                                'items' => [
+                                                    'type' => 'object',
+                                                    'properties' => [
+                                                        'sku' => ['type' => 'string'],
+                                                    ],
+                                                    'required' => ['sku'],
+                                                ],
+                                            ],
+                                        ],
+                                        'required' => ['items'],
+                                    ],
+                                ],
+                                'required' => ['data'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'models' => [],
+            'polymorphic' => [],
+            'broadcast' => [],
+        ],
+        'routeMatches' => [
+            [
+                'routeId' => 'route-orders-store',
+                'actionKind' => 'controller_method',
+                'actionKey' => 'App\\Http\\Controllers\\OrderController::store',
+                'matchStatus' => 'matched',
+            ],
+        ],
+        'diagnostics' => [],
+    ]);
+
+    $graph = app(OperationGraphMerger::class)->merge($runtime, $response);
+    $document = app(OpenApiDocumentFactory::class)->make($graph, config('oxcribe.openapi'));
+
+    $scenarios = $document['paths']['/orders']['post']['x-oxcribe']['scenarios'];
+
+    expect($scenarios)->toHaveKey('happy_path')
+        ->and($scenarios['happy_path'])->toHaveKeys(['single_item', 'multiple_items'])
+        ->and($scenarios['happy_path']['single_item'])->toMatchArray([
+            'key' => 'single_item',
+            'label' => 'Single item',
+        ])
+        ->and($scenarios['happy_path']['single_item']['request']['body']['items'])->toHaveCount(1)
+        ->and($scenarios['happy_path']['multiple_items']['request']['body']['items'])->toHaveCount(3);
+});
+
 it('hardens openapi output with route filters, path parameters, query parameters, and multipart bodies', function () {
     $runtime = new RuntimeSnapshot(
         app: new AppSnapshot(
@@ -1159,21 +1651,21 @@ it('hardens openapi output with route filters, path parameters, query parameters
                 ],
             ],
         ])
-        ->and($document['paths']['/api/users/{user}/posts/{post}']['post']['requestBody']['content']['multipart/form-data']['schema'])->toMatchArray([
+        ->and($document['paths']['/api/users/{user}/posts/{post}']['post']['requestBody']['content']['multipart/form-data']['schema']['type'])->toBe('object')
+        ->and($document['paths']['/api/users/{user}/posts/{post}']['post']['requestBody']['content']['multipart/form-data']['schema']['properties']['title']['description'])->toBe('String value for title.')
+        ->and($document['paths']['/api/users/{user}/posts/{post}']['post']['requestBody']['content']['multipart/form-data']['schema']['properties']['filters'])->toMatchArray([
             'type' => 'object',
+            'description' => 'Object payload for filters.',
             'properties' => [
-                'title' => [],
-                'filters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'state' => [],
-                    ],
-                ],
-                'avatar' => [
-                    'type' => 'string',
-                    'format' => 'binary',
+                'state' => [
+                    'description' => 'String value for state.',
                 ],
             ],
+        ])
+        ->and($document['paths']['/api/users/{user}/posts/{post}']['post']['requestBody']['content']['multipart/form-data']['schema']['properties']['avatar'])->toMatchArray([
+            'type' => 'string',
+            'format' => 'binary',
+            'description' => 'String value for avatar.',
         ])
         ->and($document['components']['securitySchemes'])->toHaveKey('basicAuth')
         ->and($document['x-oxcribe']['operationCount'])->toBe(1);
@@ -1667,6 +2159,7 @@ it('consumes controller response overlays when building openapi responses', func
             'type' => 'array',
             'items' => [
                 'type' => 'integer',
+                'description' => 'Integer value for items.',
             ],
         ])
         ->and($document['paths']['/sessions/{session}']['delete']['responses']['204'])->toMatchArray([

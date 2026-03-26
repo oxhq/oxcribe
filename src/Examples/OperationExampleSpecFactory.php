@@ -9,6 +9,7 @@ use Oxhq\Oxcribe\Data\RouteBinding;
 use Oxhq\Oxcribe\Examples\Data\EndpointExampleContext;
 use Oxhq\Oxcribe\Examples\Data\ExampleField;
 use Oxhq\Oxcribe\Examples\Data\OperationExampleSpec;
+use Oxhq\Oxcribe\OpenApi\Support\EffectiveRequestFieldLocation;
 use Oxhq\Oxcribe\OpenApi\Support\RequestFieldIndex;
 
 final readonly class OperationExampleSpecFactory
@@ -29,13 +30,16 @@ final readonly class OperationExampleSpecFactory
         );
 
         $requestFieldIndex = RequestFieldIndex::fromController($operation->controller);
+        $request = is_array($operation->controller['request'] ?? null) ? $operation->controller['request'] : [];
+        $queryLocation = EffectiveRequestFieldLocation::query($operation, $request, $requestFieldIndex);
+        $bodyLocation = EffectiveRequestFieldLocation::body($operation, $request, $requestFieldIndex);
 
         return new OperationExampleSpec(
             endpoint: $endpoint,
             pathParams: $this->buildPathParams($operation, $endpoint),
-            queryParams: $this->buildRequestFields($requestFieldIndex, 'query', $endpoint),
+            queryParams: $this->buildRequestFields($requestFieldIndex, $queryLocation, $endpoint),
             requestFields: array_merge(
-                $this->buildRequestFields($requestFieldIndex, 'body', $endpoint),
+                $bodyLocation !== null ? $this->buildRequestFields($requestFieldIndex, $bodyLocation, $endpoint) : [],
                 $this->buildRequestFields($requestFieldIndex, 'files', $endpoint),
             ),
             responseFields: $this->buildResponseFields($operation, $endpoint),

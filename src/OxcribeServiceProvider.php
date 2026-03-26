@@ -8,7 +8,9 @@ use Illuminate\Support\ServiceProvider;
 use Oxhq\Oxcribe\Bridge\AnalysisRequestFactory;
 use Oxhq\Oxcribe\Bridge\ProcessOxinferClient;
 use Oxhq\Oxcribe\Console\AnalyzeCommand;
+use Oxhq\Oxcribe\Console\DoctorCommand;
 use Oxhq\Oxcribe\Console\ExportOpenApiCommand;
+use Oxhq\Oxcribe\Console\InstallBinaryCommand;
 use Oxhq\Oxcribe\Console\PublishCommand;
 use Oxhq\Oxcribe\Contracts\OxinferClient;
 use Oxhq\Oxcribe\Contracts\PackageInventoryDetector;
@@ -19,6 +21,7 @@ use Oxhq\Oxcribe\OpenApi\OpenApiDocumentFactory;
 use Oxhq\Oxcribe\Overrides\OverrideApplier;
 use Oxhq\Oxcribe\Overrides\OverrideLoader;
 use Oxhq\Oxcribe\Runtime\LaravelRuntimeSnapshotFactory;
+use Oxhq\Oxcribe\Support\FormRequestFieldResolver;
 use Oxhq\Oxcribe\Support\InstalledPackageDetector;
 use Oxhq\Oxcribe\Support\ManifestFactory;
 use Oxhq\Oxcribe\Support\RequestSerializer;
@@ -35,6 +38,7 @@ final class OxcribeServiceProvider extends ServiceProvider
         $this->app->singleton(ManifestFactory::class);
         $this->app->singleton(RouteSnapshotExtractor::class);
         $this->app->singleton(RequestSerializer::class);
+        $this->app->singleton(FormRequestFieldResolver::class);
         $this->app->singleton(PackageInventoryDetector::class, function ($app): PackageInventoryDetector {
             return new InstalledPackageDetector((array) $app['config']->get('oxcribe', []));
         });
@@ -48,7 +52,11 @@ final class OxcribeServiceProvider extends ServiceProvider
         $this->app->singleton(OxinferClient::class, function ($app): OxinferClient {
             return new ProcessOxinferClient((array) $app['config']->get('oxcribe.oxinfer', []));
         });
-        $this->app->singleton(OperationGraphMerger::class);
+        $this->app->singleton(OperationGraphMerger::class, function ($app): OperationGraphMerger {
+            return new OperationGraphMerger(
+                formRequestFieldResolver: $app->make(FormRequestFieldResolver::class),
+            );
+        });
         $this->app->singleton(OverrideLoader::class, function ($app): OverrideLoader {
             return new OverrideLoader((array) $app['config']->get('oxcribe', []));
         });
@@ -82,7 +90,9 @@ final class OxcribeServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 AnalyzeCommand::class,
+                DoctorCommand::class,
                 ExportOpenApiCommand::class,
+                InstallBinaryCommand::class,
                 PublishCommand::class,
             ]);
         }
