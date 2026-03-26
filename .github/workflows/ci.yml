@@ -7,6 +7,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -33,7 +35,7 @@ jobs:
             pest_plugin_laravel: '^4.0'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -41,9 +43,10 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.26.1'
+          cache: false
 
       - name: Validate composer metadata
         run: composer validate --strict
