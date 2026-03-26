@@ -1,5 +1,5 @@
 {
-  "name": "garaekz/oxcribe-auth-error-fixture",
+  "name": "oxhq/oxcribe-auth-error-fixture",
   "type": "project",
   "autoload": {
     "psr-4": {

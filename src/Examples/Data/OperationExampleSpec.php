@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
 final readonly class OperationExampleSpec
 {
@@ -20,8 +20,7 @@ final readonly class OperationExampleSpec
         public array $requestFields = [],
         public array $responseFields = [],
         public array $responseStatuses = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

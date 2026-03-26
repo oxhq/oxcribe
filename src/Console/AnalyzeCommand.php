@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Console;
+namespace Oxhq\Oxcribe\Console;
 
-use Garaekz\Oxcribe\OxcribeManager;
 use Illuminate\Console\Command;
 use JsonException;
+use Oxhq\Oxcribe\OxcribeManager;
 
 final class AnalyzeCommand extends Command
 {

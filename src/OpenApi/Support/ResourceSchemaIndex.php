@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\OpenApi\Support;
+namespace Oxhq\Oxcribe\OpenApi\Support;
 
 final class ResourceSchemaIndex
 {
@@ -226,6 +226,7 @@ final class ResourceSchemaIndex
             $short = $this->shortTypeName($fqcn);
             if (($counts[$short] ?? 0) === 1) {
                 $componentNames[$fqcn] = $short;
+
                 continue;
             }
 

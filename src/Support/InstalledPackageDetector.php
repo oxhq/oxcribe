@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Support;
+namespace Oxhq\Oxcribe\Support;
 
-use Garaekz\Oxcribe\Contracts\PackageInventoryDetector;
-use Garaekz\Oxcribe\Data\PackageInventorySnapshot;
-use Garaekz\Oxcribe\Data\PackageSnapshot;
-use Garaekz\Oxcribe\Data\SpatiePackageSnapshot;
+use Oxhq\Oxcribe\Contracts\PackageInventoryDetector;
+use Oxhq\Oxcribe\Data\PackageInventorySnapshot;
+use Oxhq\Oxcribe\Data\PackageSnapshot;
+use Oxhq\Oxcribe\Data\SpatiePackageSnapshot;
 
 final class InstalledPackageDetector implements PackageInventoryDetector
 {
@@ -16,8 +16,7 @@ final class InstalledPackageDetector implements PackageInventoryDetector
      */
     public function __construct(
         private readonly array $config,
-    ) {
-    }
+    ) {}
 
     public function detect(string $projectRoot): PackageInventorySnapshot
     {

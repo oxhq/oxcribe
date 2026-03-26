@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 final readonly class AppSnapshot
 {
@@ -11,8 +11,7 @@ final readonly class AppSnapshot
         public string $laravelVersion,
         public string $phpVersion,
         public string $appEnv,
-    ) {
-    }
+    ) {}
 
     public function toArray(): array
     {

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Support;
+namespace Oxhq\Oxcribe\Support;
 
 use Closure;
-use Garaekz\Oxcribe\Data\RouteAction;
-use Garaekz\Oxcribe\Data\RouteBinding;
-use Garaekz\Oxcribe\Data\RouteSnapshot;
 use Illuminate\Contracts\Routing\UrlRoutable;
 use Illuminate\Routing\Route;
+use Oxhq\Oxcribe\Data\RouteAction;
+use Oxhq\Oxcribe\Data\RouteBinding;
+use Oxhq\Oxcribe\Data\RouteSnapshot;
 use ReflectionFunction;
 use ReflectionMethod;
 use ReflectionNamedType;
@@ -20,8 +20,7 @@ final class RouteSnapshotExtractor
 {
     public function __construct(
         private readonly RouteIdFactory $routeIdFactory,
-    ) {
-    }
+    ) {}
 
     public function extract(Route $route): array
     {

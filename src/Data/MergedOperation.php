@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
-use Garaekz\Oxcribe\Auth\AuthProfile;
+use Oxhq\Oxcribe\Auth\AuthProfile;
 
 final readonly class MergedOperation
 {
@@ -30,8 +30,7 @@ final readonly class MergedOperation
         public RouteAction $action,
         public RouteMatch $routeMatch,
         public ?array $controller,
-    ) {
-    }
+    ) {}
 
     public function requiresAuthentication(): bool
     {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 final readonly class RouteMatch
 {
@@ -12,8 +12,7 @@ final readonly class RouteMatch
         public string $matchStatus,
         public ?string $actionKey = null,
         public ?string $reasonCode = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload

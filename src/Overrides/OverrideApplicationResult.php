@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Overrides;
+namespace Oxhq\Oxcribe\Overrides;
 
-use Garaekz\Oxcribe\Data\OperationGraph;
+use Oxhq\Oxcribe\Data\OperationGraph;
 
 final readonly class OverrideApplicationResult
 {
@@ -14,6 +14,5 @@ final readonly class OverrideApplicationResult
     public function __construct(
         public OperationGraph $graph,
         public array $resolutions,
-    ) {
-    }
+    ) {}
 }

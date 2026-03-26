@@ -3,7 +3,7 @@
 ## 1. Require The Package
 
 ```bash
-composer require garaekz/oxcribe
+composer require oxhq/oxcribe
 php artisan vendor:publish --tag=oxcribe-config
 ```
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 final readonly class RuntimeSnapshot
 {

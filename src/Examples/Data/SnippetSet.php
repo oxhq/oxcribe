@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
 final readonly class SnippetSet
 {
@@ -10,8 +10,7 @@ final readonly class SnippetSet
         public string $curl,
         public string $fetch,
         public string $axios,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, string>

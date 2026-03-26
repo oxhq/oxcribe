@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Merge;
+namespace Oxhq\Oxcribe\Merge;
 
-use Garaekz\Oxcribe\Data\AnalysisResponse;
-use Garaekz\Oxcribe\Data\MergedOperation;
-use Garaekz\Oxcribe\Data\OperationGraph;
-use Garaekz\Oxcribe\Data\RouteMatch;
-use Garaekz\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Data\AnalysisResponse;
+use Oxhq\Oxcribe\Data\MergedOperation;
+use Oxhq\Oxcribe\Data\OperationGraph;
+use Oxhq\Oxcribe\Data\RouteMatch;
+use Oxhq\Oxcribe\Data\RuntimeSnapshot;
 
 final class OperationGraphMerger
 {

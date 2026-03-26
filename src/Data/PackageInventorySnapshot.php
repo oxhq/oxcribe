@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 final readonly class PackageInventorySnapshot
 {
     public function __construct(
         public SpatiePackageSnapshot $spatie,
-    ) {
-    }
+    ) {}
 
     public static function empty(): self
     {

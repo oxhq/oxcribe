@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Examples\Data\EndpointExampleContext;
-use Garaekz\Oxcribe\Examples\Data\ExampleField;
-use Garaekz\Oxcribe\Examples\Data\FieldConstraints;
-use Garaekz\Oxcribe\Examples\Data\FieldHints;
-use Garaekz\Oxcribe\Examples\Data\OperationExampleSpec;
-use Garaekz\Oxcribe\Examples\ExampleMode;
-use Garaekz\Oxcribe\Examples\OperationExampleGenerator;
+use Oxhq\Oxcribe\Examples\Data\EndpointExampleContext;
+use Oxhq\Oxcribe\Examples\Data\ExampleField;
+use Oxhq\Oxcribe\Examples\Data\FieldConstraints;
+use Oxhq\Oxcribe\Examples\Data\FieldHints;
+use Oxhq\Oxcribe\Examples\Data\OperationExampleSpec;
+use Oxhq\Oxcribe\Examples\ExampleMode;
+use Oxhq\Oxcribe\Examples\OperationExampleGenerator;
 
 it('generates coherent auth login examples and snippets', function () {
-    $generator = new OperationExampleGenerator();
+    $generator = new OperationExampleGenerator;
 
     $spec = new OperationExampleSpec(
         endpoint: new EndpointExampleContext(
@@ -58,7 +58,7 @@ it('generates coherent auth login examples and snippets', function () {
 });
 
 it('supports minimal and full collection-aware examples for store operations', function () {
-    $generator = new OperationExampleGenerator();
+    $generator = new OperationExampleGenerator;
 
     $spec = new OperationExampleSpec(
         endpoint: new EndpointExampleContext(

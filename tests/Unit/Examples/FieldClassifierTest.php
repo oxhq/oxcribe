@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Examples\Data\EndpointExampleContext;
-use Garaekz\Oxcribe\Examples\FieldClassifier;
+use Oxhq\Oxcribe\Examples\Data\EndpointExampleContext;
+use Oxhq\Oxcribe\Examples\FieldClassifier;
 
 it('classifies company fields, password confirmation, enums, and bindings', function () {
-    $classifier = new FieldClassifier();
+    $classifier = new FieldClassifier;
 
     $companyName = $classifier->classify(
         path: 'name',

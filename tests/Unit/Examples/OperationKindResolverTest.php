@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Data\MergedOperation;
-use Garaekz\Oxcribe\Data\RouteAction;
-use Garaekz\Oxcribe\Data\RouteMatch;
-use Garaekz\Oxcribe\Examples\OperationKindResolver;
+use Oxhq\Oxcribe\Data\MergedOperation;
+use Oxhq\Oxcribe\Data\RouteAction;
+use Oxhq\Oxcribe\Data\RouteMatch;
+use Oxhq\Oxcribe\Examples\OperationKindResolver;
 
 it('resolves auth, crud, custom, and paginated operation kinds', function () {
-    $resolver = new OperationKindResolver();
+    $resolver = new OperationKindResolver;
 
     $login = exampleMergedOperation(
         methods: ['POST'],

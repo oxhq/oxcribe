@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Support;
+namespace Oxhq\Oxcribe\Support;
 
 final class ManifestFactory
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
 final readonly class FieldHints
 {
@@ -14,8 +14,7 @@ final readonly class FieldHints
         public float $confidence,
         public array $source = [],
         public array $via = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

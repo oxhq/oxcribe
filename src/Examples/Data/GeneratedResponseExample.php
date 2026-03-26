@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
 final readonly class GeneratedResponseExample
 {
@@ -13,8 +13,7 @@ final readonly class GeneratedResponseExample
         public ?int $status,
         public mixed $body = null,
         public array $headers = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

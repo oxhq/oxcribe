@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\OxcribeServiceProvider;
+use Oxhq\Oxcribe\OxcribeServiceProvider;
 
 it('registers the package service provider in the test application', function () {
     if (! class_exists(OxcribeServiceProvider::class)) {
@@ -12,4 +12,3 @@ it('registers the package service provider in the test application', function ()
     expect(app()->getProvider(OxcribeServiceProvider::class))
         ->toBeInstanceOf(OxcribeServiceProvider::class);
 });
-

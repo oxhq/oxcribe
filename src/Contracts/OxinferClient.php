@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Contracts;
+namespace Oxhq\Oxcribe\Contracts;
 
-use Garaekz\Oxcribe\Data\AnalysisRequest;
-use Garaekz\Oxcribe\Data\AnalysisResponse;
+use Oxhq\Oxcribe\Data\AnalysisRequest;
+use Oxhq\Oxcribe\Data\AnalysisResponse;
 
 interface OxinferClient
 {

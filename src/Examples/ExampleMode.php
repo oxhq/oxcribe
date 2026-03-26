@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples;
+namespace Oxhq\Oxcribe\Examples;
 
 enum ExampleMode: string
 {

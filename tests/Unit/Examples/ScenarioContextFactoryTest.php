@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Examples\Data\EndpointExampleContext;
-use Garaekz\Oxcribe\Examples\ExampleMode;
-use Garaekz\Oxcribe\Examples\ScenarioContextFactory;
+use Oxhq\Oxcribe\Examples\Data\EndpointExampleContext;
+use Oxhq\Oxcribe\Examples\ExampleMode;
+use Oxhq\Oxcribe\Examples\ScenarioContextFactory;
 
 it('builds deterministic scenario context from project and endpoint seeds', function () {
-    $factory = new ScenarioContextFactory();
+    $factory = new ScenarioContextFactory;
     $endpoint = new EndpointExampleContext(
         method: 'POST',
         path: '/api/login',

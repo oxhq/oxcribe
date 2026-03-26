@@ -30,7 +30,7 @@ If `oxinfer` is not on `PATH`, either place it at `bin/oxinfer` in the Laravel a
 ## Install
 
 ```bash
-composer require garaekz/oxcribe
+composer require oxhq/oxcribe
 php artisan vendor:publish --tag=oxcribe-config
 ```
 

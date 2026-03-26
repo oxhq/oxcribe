@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Overrides;
+namespace Oxhq\Oxcribe\Overrides;
 
 final readonly class OverrideSet
 {
@@ -13,8 +13,7 @@ final readonly class OverrideSet
     public function __construct(
         public array $rules = [],
         public array $sources = [],
-    ) {
-    }
+    ) {}
 
     public function isEmpty(): bool
     {

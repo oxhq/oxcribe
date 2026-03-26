@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe;
+namespace Oxhq\Oxcribe;
 
-use Garaekz\Oxcribe\Bridge\AnalysisRequestFactory;
-use Garaekz\Oxcribe\Bridge\ProcessOxinferClient;
-use Garaekz\Oxcribe\Console\AnalyzeCommand;
-use Garaekz\Oxcribe\Console\ExportOpenApiCommand;
-use Garaekz\Oxcribe\Console\PublishCommand;
-use Garaekz\Oxcribe\Contracts\OxinferClient;
-use Garaekz\Oxcribe\Contracts\PackageInventoryDetector;
-use Garaekz\Oxcribe\Contracts\RuntimeSnapshotFactory;
-use Garaekz\Oxcribe\Docs\DocsPayloadFactory;
-use Garaekz\Oxcribe\Merge\OperationGraphMerger;
-use Garaekz\Oxcribe\Overrides\OverrideApplier;
-use Garaekz\Oxcribe\Overrides\OverrideLoader;
-use Garaekz\Oxcribe\OpenApi\OpenApiDocumentFactory;
-use Garaekz\Oxcribe\Runtime\LaravelRuntimeSnapshotFactory;
-use Garaekz\Oxcribe\Support\InstalledPackageDetector;
-use Garaekz\Oxcribe\Support\ManifestFactory;
-use Garaekz\Oxcribe\Support\RequestSerializer;
-use Garaekz\Oxcribe\Support\RouteIdFactory;
-use Garaekz\Oxcribe\Support\RouteSnapshotExtractor;
 use Illuminate\Support\ServiceProvider;
+use Oxhq\Oxcribe\Bridge\AnalysisRequestFactory;
+use Oxhq\Oxcribe\Bridge\ProcessOxinferClient;
+use Oxhq\Oxcribe\Console\AnalyzeCommand;
+use Oxhq\Oxcribe\Console\ExportOpenApiCommand;
+use Oxhq\Oxcribe\Console\PublishCommand;
+use Oxhq\Oxcribe\Contracts\OxinferClient;
+use Oxhq\Oxcribe\Contracts\PackageInventoryDetector;
+use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
+use Oxhq\Oxcribe\Docs\DocsPayloadFactory;
+use Oxhq\Oxcribe\Merge\OperationGraphMerger;
+use Oxhq\Oxcribe\OpenApi\OpenApiDocumentFactory;
+use Oxhq\Oxcribe\Overrides\OverrideApplier;
+use Oxhq\Oxcribe\Overrides\OverrideLoader;
+use Oxhq\Oxcribe\Runtime\LaravelRuntimeSnapshotFactory;
+use Oxhq\Oxcribe\Support\InstalledPackageDetector;
+use Oxhq\Oxcribe\Support\ManifestFactory;
+use Oxhq\Oxcribe\Support\RequestSerializer;
+use Oxhq\Oxcribe\Support\RouteIdFactory;
+use Oxhq\Oxcribe\Support\RouteSnapshotExtractor;
 
 final class OxcribeServiceProvider extends ServiceProvider
 {
@@ -87,4 +87,8 @@ final class OxcribeServiceProvider extends ServiceProvider
             ]);
         }
     }
+}
+
+if (! class_exists(\Garaekz\Oxcribe\OxcribeServiceProvider::class, false)) {
+    class_alias(OxcribeServiceProvider::class, \Garaekz\Oxcribe\OxcribeServiceProvider::class);
 }

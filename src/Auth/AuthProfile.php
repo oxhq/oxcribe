@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Auth;
+namespace Oxhq\Oxcribe\Auth;
 
 final readonly class AuthProfile
 {
@@ -22,8 +22,7 @@ final readonly class AuthProfile
         public array $guardCandidates,
         public array $schemeCandidates,
         public ?string $defaultScheme,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  list<string>  $middleware
@@ -47,7 +46,7 @@ final readonly class AuthProfile
 
         $authenticationMatches = [];
         foreach ($middleware as $entry) {
-            if (!is_string($entry)) {
+            if (! is_string($entry)) {
                 continue;
             }
 
@@ -68,7 +67,7 @@ final readonly class AuthProfile
 
         $authorizationMatches = [];
         foreach ($middleware as $entry) {
-            if (!is_string($entry)) {
+            if (! is_string($entry)) {
                 continue;
             }
 
@@ -87,7 +86,7 @@ final readonly class AuthProfile
 
         $runtimeMatches = [];
         foreach ($middleware as $entry) {
-            if (!is_string($entry)) {
+            if (! is_string($entry)) {
                 continue;
             }
 
@@ -361,7 +360,7 @@ final readonly class AuthProfile
     {
         $normalized = [];
         foreach ($map as $key => $schemes) {
-            if (!is_string($key) || $key === '') {
+            if (! is_string($key) || $key === '') {
                 continue;
             }
 
@@ -387,7 +386,7 @@ final readonly class AuthProfile
     {
         $normalized = [];
         foreach ($aliases as $alias => $target) {
-            if (!is_string($alias) || !is_string($target) || $alias === '' || $target === '') {
+            if (! is_string($alias) || ! is_string($target) || $alias === '' || $target === '') {
                 continue;
             }
 
@@ -418,7 +417,7 @@ final readonly class AuthProfile
         array $guardAliases,
         ?string $defaultScheme,
     ): ?AuthMiddlewareMatch {
-        if (!self::isAuthenticationMiddleware($middleware)) {
+        if (! self::isAuthenticationMiddleware($middleware)) {
             return null;
         }
 

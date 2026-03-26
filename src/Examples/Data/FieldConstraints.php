@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
 final readonly class FieldConstraints
 {
@@ -22,8 +22,7 @@ final readonly class FieldConstraints
         public ?string $confirmedWith = null,
         public bool $accepted = false,
         public ?string $format = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

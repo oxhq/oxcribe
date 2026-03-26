@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Data\MergedOperation;
-use Garaekz\Oxcribe\Data\OperationGraph;
-use Garaekz\Oxcribe\Data\RouteAction;
-use Garaekz\Oxcribe\Data\RouteMatch;
-use Garaekz\Oxcribe\Overrides\OverrideApplier;
-use Garaekz\Oxcribe\Overrides\OverrideRule;
-use Garaekz\Oxcribe\Overrides\OverrideSet;
+use Oxhq\Oxcribe\Data\MergedOperation;
+use Oxhq\Oxcribe\Data\OperationGraph;
+use Oxhq\Oxcribe\Data\RouteAction;
+use Oxhq\Oxcribe\Data\RouteMatch;
+use Oxhq\Oxcribe\Overrides\OverrideApplier;
+use Oxhq\Oxcribe\Overrides\OverrideRule;
+use Oxhq\Oxcribe\Overrides\OverrideSet;
 
 it('filters excluded operations and carries additive override metadata', function () {
     $graph = new OperationGraph(

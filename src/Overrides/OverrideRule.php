@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Overrides;
+namespace Oxhq\Oxcribe\Overrides;
 
-use Garaekz\Oxcribe\Data\MergedOperation;
+use Oxhq\Oxcribe\Data\MergedOperation;
 
 final readonly class OverrideRule
 {
@@ -40,8 +40,7 @@ final readonly class OverrideRule
         public array $xOxcribe = [],
         public array $externalDocs = [],
         public array $extensions = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload

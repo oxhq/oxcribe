@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples;
+namespace Oxhq\Oxcribe\Examples;
 
-use Garaekz\Oxcribe\Examples\Data\EndpointExampleContext;
-use Garaekz\Oxcribe\Examples\Data\ScenarioAuth;
-use Garaekz\Oxcribe\Examples\Data\ScenarioCompany;
-use Garaekz\Oxcribe\Examples\Data\ScenarioContext;
-use Garaekz\Oxcribe\Examples\Data\ScenarioPerson;
 use Illuminate\Support\Str;
+use Oxhq\Oxcribe\Examples\Data\EndpointExampleContext;
+use Oxhq\Oxcribe\Examples\Data\ScenarioAuth;
+use Oxhq\Oxcribe\Examples\Data\ScenarioCompany;
+use Oxhq\Oxcribe\Examples\Data\ScenarioContext;
+use Oxhq\Oxcribe\Examples\Data\ScenarioPerson;
 
 final class ScenarioContextFactory
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\OpenApi\Support;
+namespace Oxhq\Oxcribe\OpenApi\Support;
 
 /**
  * Indexes the richer `request.fields` overlay emitted by oxinfer.

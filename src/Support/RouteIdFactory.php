@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Support;
+namespace Oxhq\Oxcribe\Support;
 
-use Garaekz\Oxcribe\Data\RouteAction;
+use Oxhq\Oxcribe\Data\RouteAction;
 
 final class RouteIdFactory
 {

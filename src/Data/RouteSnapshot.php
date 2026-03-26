@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 final readonly class RouteSnapshot
 {
@@ -25,8 +25,7 @@ final readonly class RouteSnapshot
         public array $defaults,
         public array $bindings,
         public RouteAction $action,
-    ) {
-    }
+    ) {}
 
     public function toArray(): array
     {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Auth\AuthProfile;
-use Garaekz\Oxcribe\Data\MergedOperation;
-use Garaekz\Oxcribe\Data\RouteAction;
-use Garaekz\Oxcribe\Data\RouteMatch;
+use Oxhq\Oxcribe\Auth\AuthProfile;
+use Oxhq\Oxcribe\Data\MergedOperation;
+use Oxhq\Oxcribe\Data\RouteAction;
+use Oxhq\Oxcribe\Data\RouteMatch;
 
 function authMergedOperation(array $middleware): MergedOperation
 {

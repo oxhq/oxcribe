@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Tests;
+namespace Oxhq\Oxcribe\Tests;
 
+use Inertia\ServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Oxhq\Oxcribe\OxcribeServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
@@ -14,8 +16,8 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app): array
     {
         return [
-            \Garaekz\Oxcribe\OxcribeServiceProvider::class,
-            \Inertia\ServiceProvider::class,
+            OxcribeServiceProvider::class,
+            ServiceProvider::class,
         ];
     }
 

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Runtime;
+namespace Oxhq\Oxcribe\Runtime;
 
-use Garaekz\Oxcribe\Contracts\RuntimeSnapshotFactory;
-use Garaekz\Oxcribe\Data\AppSnapshot;
-use Garaekz\Oxcribe\Contracts\PackageInventoryDetector;
-use Garaekz\Oxcribe\Data\RuntimeSnapshot;
-use Garaekz\Oxcribe\Support\RouteSnapshotExtractor;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
+use Oxhq\Oxcribe\Contracts\PackageInventoryDetector;
+use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
+use Oxhq\Oxcribe\Data\AppSnapshot;
+use Oxhq\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Support\RouteSnapshotExtractor;
 
 final class LaravelRuntimeSnapshotFactory implements RuntimeSnapshotFactory
 {
@@ -19,8 +19,7 @@ final class LaravelRuntimeSnapshotFactory implements RuntimeSnapshotFactory
         private readonly Router $router,
         private readonly RouteSnapshotExtractor $routeSnapshotExtractor,
         private readonly PackageInventoryDetector $packageInventoryDetector,
-    ) {
-    }
+    ) {}
 
     public function make(): RuntimeSnapshot
     {

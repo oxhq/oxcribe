@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Support\RequestSerializer;
 use Illuminate\Http\Request;
+use Oxhq\Oxcribe\Support\RequestSerializer;
 
 it('serializes a request into a predictable payload', function () {
     if (! class_exists(RequestSerializer::class)) {

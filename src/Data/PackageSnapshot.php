@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 final readonly class PackageSnapshot
 {
@@ -13,8 +13,7 @@ final readonly class PackageSnapshot
         public ?string $constraint = null,
         public ?string $source = null,
         public bool $dev = false,
-    ) {
-    }
+    ) {}
 
     public static function installed(
         string $name,

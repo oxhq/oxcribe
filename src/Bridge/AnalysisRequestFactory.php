@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Bridge;
+namespace Oxhq\Oxcribe\Bridge;
 
-use Garaekz\Oxcribe\Data\AnalysisRequest;
-use Garaekz\Oxcribe\Data\RuntimeSnapshot;
-use Garaekz\Oxcribe\Support\ManifestFactory;
 use Illuminate\Support\Str;
 use JsonException;
+use Oxhq\Oxcribe\Data\AnalysisRequest;
+use Oxhq\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Support\ManifestFactory;
 
 final class AnalysisRequestFactory
 {
@@ -17,8 +17,7 @@ final class AnalysisRequestFactory
     public function __construct(
         private readonly ManifestFactory $manifestFactory,
         private readonly array $config,
-    ) {
-    }
+    ) {}
 
     /**
      * @throws JsonException

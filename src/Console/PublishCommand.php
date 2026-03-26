@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Console;
+namespace Oxhq\Oxcribe\Console;
 
-use Garaekz\Oxcribe\OxcribeManager;
-use Garaekz\Oxcribe\Support\PackageVersion;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
+use Oxhq\Oxcribe\OxcribeManager;
+use Oxhq\Oxcribe\Support\PackageVersion;
 
 final class PublishCommand extends Command
 {
@@ -88,7 +88,6 @@ final class PublishCommand extends Command
     }
 
     /**
-     * @param  mixed  $commandVersion
      * @param  array<string, mixed>  $config
      */
     private function resolveVersion(mixed $commandVersion, array $config): string

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples;
+namespace Oxhq\Oxcribe\Examples;
 
-use Garaekz\Oxcribe\Examples\Data\GeneratedRequestExample;
-use Garaekz\Oxcribe\Examples\Data\OperationExampleSpec;
-use Garaekz\Oxcribe\Examples\Data\SnippetSet;
+use Oxhq\Oxcribe\Examples\Data\GeneratedRequestExample;
+use Oxhq\Oxcribe\Examples\Data\OperationExampleSpec;
+use Oxhq\Oxcribe\Examples\Data\SnippetSet;
 
 final class SnippetFactory
 {

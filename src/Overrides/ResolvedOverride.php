@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Overrides;
+namespace Oxhq\Oxcribe\Overrides;
 
 final readonly class ResolvedOverride
 {
@@ -33,8 +33,7 @@ final readonly class ResolvedOverride
         public array $externalDocs,
         public array $extensions,
         public array $matchedSources,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

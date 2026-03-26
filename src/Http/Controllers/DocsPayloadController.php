@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Http\Controllers;
+namespace Oxhq\Oxcribe\Http\Controllers;
 
-use Garaekz\Oxcribe\OxcribeManager;
 use Illuminate\Http\JsonResponse;
+use Oxhq\Oxcribe\OxcribeManager;
 
 final class DocsPayloadController
 {
@@ -26,4 +26,8 @@ final class DocsPayloadController
 
         return $configured !== '' ? $configured : null;
     }
+}
+
+if (! class_exists(\Garaekz\Oxcribe\Http\Controllers\DocsPayloadController::class, false)) {
+    class_alias(DocsPayloadController::class, \Garaekz\Oxcribe\Http\Controllers\DocsPayloadController::class);
 }

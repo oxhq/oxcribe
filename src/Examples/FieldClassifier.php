@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples;
+namespace Oxhq\Oxcribe\Examples;
 
-use Garaekz\Oxcribe\Examples\Data\EndpointExampleContext;
-use Garaekz\Oxcribe\Examples\Data\ExampleField;
-use Garaekz\Oxcribe\Examples\Data\FieldConstraints;
-use Garaekz\Oxcribe\Examples\Data\FieldHints;
+use Oxhq\Oxcribe\Examples\Data\EndpointExampleContext;
+use Oxhq\Oxcribe\Examples\Data\ExampleField;
+use Oxhq\Oxcribe\Examples\Data\FieldConstraints;
+use Oxhq\Oxcribe\Examples\Data\FieldHints;
 
 final class FieldClassifier
 {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Docs\DocsPayloadFactory;
+use Oxhq\Oxcribe\Docs\DocsPayloadFactory;
 
 it('normalizes openapi documents into a stable viewer payload', function () {
-    $factory = new DocsPayloadFactory();
+    $factory = new DocsPayloadFactory;
 
     $payload = $factory->make([
         'openapi' => '3.1.0',

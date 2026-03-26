@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 use InvalidArgumentException;
 use JsonException;
@@ -26,8 +26,7 @@ final readonly class AnalysisResponse
         public array $delta,
         public array $routeMatches,
         public array $diagnostics,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload

@@ -2,23 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples;
+namespace Oxhq\Oxcribe\Examples;
 
-use Garaekz\Oxcribe\Examples\Data\ExampleField;
-use Garaekz\Oxcribe\Examples\Data\GeneratedOperationExample;
-use Garaekz\Oxcribe\Examples\Data\GeneratedRequestExample;
-use Garaekz\Oxcribe\Examples\Data\GeneratedResponseExample;
-use Garaekz\Oxcribe\Examples\Data\OperationExampleSpec;
-use Garaekz\Oxcribe\Examples\Data\ScenarioContext;
+use Oxhq\Oxcribe\Examples\Data\ExampleField;
+use Oxhq\Oxcribe\Examples\Data\GeneratedOperationExample;
+use Oxhq\Oxcribe\Examples\Data\GeneratedRequestExample;
+use Oxhq\Oxcribe\Examples\Data\GeneratedResponseExample;
+use Oxhq\Oxcribe\Examples\Data\OperationExampleSpec;
+use Oxhq\Oxcribe\Examples\Data\ScenarioContext;
 
 final readonly class OperationExampleGenerator
 {
     public function __construct(
-        private ScenarioContextFactory $scenarioContextFactory = new ScenarioContextFactory(),
-        private DeterministicValueGenerator $valueGenerator = new DeterministicValueGenerator(),
-        private SnippetFactory $snippetFactory = new SnippetFactory(),
-    ) {
-    }
+        private ScenarioContextFactory $scenarioContextFactory = new ScenarioContextFactory,
+        private DeterministicValueGenerator $valueGenerator = new DeterministicValueGenerator,
+        private SnippetFactory $snippetFactory = new SnippetFactory,
+    ) {}
 
     public function generate(OperationExampleSpec $spec, string $projectSeed, ExampleMode $mode, string $baseUrl = 'https://api.example.test', ?string $bearerToken = null): GeneratedOperationExample
     {
@@ -188,6 +187,7 @@ final readonly class OperationExampleGenerator
             for ($i = 0; $i < $arrayCount; $i++) {
                 if ($segments === []) {
                     $cursor[$key][$i] = $this->valueGenerator->generate($field, $context, $i);
+
                     continue;
                 }
 

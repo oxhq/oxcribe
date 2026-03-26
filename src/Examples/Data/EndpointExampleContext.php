@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
 final readonly class EndpointExampleContext
 {
@@ -12,8 +12,7 @@ final readonly class EndpointExampleContext
         public ?string $routeName,
         public ?string $actionKey,
         public string $operationKind,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

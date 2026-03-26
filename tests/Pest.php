@@ -1,6 +1,6 @@
 <?php
 
 declare(strict_types=1);
+use Oxhq\Oxcribe\Tests\TestCase;
 
-uses(Garaekz\Oxcribe\Tests\TestCase::class)->in('Feature', 'Unit');
-
+uses(TestCase::class)->in('Feature', 'Unit');

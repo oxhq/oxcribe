@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Overrides;
+namespace Oxhq\Oxcribe\Overrides;
 
 use InvalidArgumentException;
 
@@ -13,8 +13,7 @@ final class OverrideLoader
      */
     public function __construct(
         private readonly array $config,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  list<string>  $overrideFiles
@@ -23,7 +22,7 @@ final class OverrideLoader
     {
         $overridesConfig = (array) ($this->config['overrides'] ?? []);
         if (! (bool) ($overridesConfig['enabled'] ?? true)) {
-            return new OverrideSet();
+            return new OverrideSet;
         }
 
         $resolvedProjectRoot = $projectRoot ?? base_path();
@@ -133,7 +132,6 @@ final class OverrideLoader
     }
 
     /**
-     * @param  mixed  $payload
      * @return list<OverrideRule>
      */
     private function buildRulesFromPayload(mixed $payload, string $source): array

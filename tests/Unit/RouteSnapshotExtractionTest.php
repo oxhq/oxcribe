@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Support\RouteSnapshotExtractor;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Route;
+use Oxhq\Oxcribe\Support\RouteSnapshotExtractor;
 
 if (! class_exists(OxcribeHardeningUser::class)) {
     class OxcribeHardeningUser extends Model

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 final readonly class SpatiePackageSnapshot
 {
@@ -12,8 +12,7 @@ final readonly class SpatiePackageSnapshot
         public PackageSnapshot $laravelPermission,
         public PackageSnapshot $laravelMedialibrary,
         public PackageSnapshot $laravelTranslatable,
-    ) {
-    }
+    ) {}
 
     public static function empty(): self
     {

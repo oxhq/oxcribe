@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples;
+namespace Oxhq\Oxcribe\Examples;
 
-use Garaekz\Oxcribe\Data\MergedOperation;
+use Oxhq\Oxcribe\Data\MergedOperation;
 
 final class OperationKindResolver
 {

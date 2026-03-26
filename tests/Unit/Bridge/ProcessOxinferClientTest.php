@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Bridge\ProcessOxinferClient;
-use Garaekz\Oxcribe\Data\AnalysisRequest;
-use Garaekz\Oxcribe\Data\AppSnapshot;
-use Garaekz\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Bridge\ProcessOxinferClient;
+use Oxhq\Oxcribe\Data\AnalysisRequest;
+use Oxhq\Oxcribe\Data\AppSnapshot;
+use Oxhq\Oxcribe\Data\RuntimeSnapshot;
 
 it('resolves the oxinfer binary from the project bin directory', function () {
     $projectRoot = sys_get_temp_dir().'/oxcribe-process-client-'.bin2hex(random_bytes(4));

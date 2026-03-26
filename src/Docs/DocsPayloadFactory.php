@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Docs;
+namespace Oxhq\Oxcribe\Docs;
 
 final class DocsPayloadFactory
 {

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Tests\Support;
+namespace Oxhq\Oxcribe\Tests\Support;
 
-use Garaekz\Oxcribe\Contracts\PackageInventoryDetector;
-use Garaekz\Oxcribe\Contracts\RuntimeSnapshotFactory;
-use Garaekz\Oxcribe\Data\AppSnapshot;
-use Garaekz\Oxcribe\Data\RuntimeSnapshot;
-use Garaekz\Oxcribe\Support\RouteSnapshotExtractor;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
+use Oxhq\Oxcribe\Contracts\PackageInventoryDetector;
+use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
+use Oxhq\Oxcribe\Data\AppSnapshot;
+use Oxhq\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Support\RouteSnapshotExtractor;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
@@ -29,8 +29,7 @@ final class FixtureRuntimeSnapshotFactory implements RuntimeSnapshotFactory
         private readonly string $routeFile = 'routes/api.php',
         private readonly array $routeGroupMiddleware = ['api'],
         private readonly string $routeGroupPrefix = 'api',
-    ) {
-    }
+    ) {}
 
     public function make(): RuntimeSnapshot
     {

@@ -2,25 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\OpenApi;
+namespace Oxhq\Oxcribe\OpenApi;
 
-use Garaekz\Oxcribe\Auth\AuthProfile;
-use Garaekz\Oxcribe\Data\MergedOperation;
-use Garaekz\Oxcribe\Data\OperationGraph;
-use Garaekz\Oxcribe\Data\RouteBinding;
-use Garaekz\Oxcribe\Examples\Data\GeneratedOperationExample;
-use Garaekz\Oxcribe\Examples\OperationExampleGenerator;
-use Garaekz\Oxcribe\Examples\OperationExampleSpecFactory;
-use Garaekz\Oxcribe\OpenApi\Support\RequestFieldIndex;
-use Garaekz\Oxcribe\OpenApi\Support\ResourceSchemaIndex;
+use Oxhq\Oxcribe\Auth\AuthProfile;
+use Oxhq\Oxcribe\Data\MergedOperation;
+use Oxhq\Oxcribe\Data\OperationGraph;
+use Oxhq\Oxcribe\Data\RouteBinding;
+use Oxhq\Oxcribe\Examples\Data\GeneratedOperationExample;
+use Oxhq\Oxcribe\Examples\OperationExampleGenerator;
+use Oxhq\Oxcribe\Examples\OperationExampleSpecFactory;
+use Oxhq\Oxcribe\OpenApi\Support\RequestFieldIndex;
+use Oxhq\Oxcribe\OpenApi\Support\ResourceSchemaIndex;
 
 final class OpenApiDocumentFactory
 {
     public function __construct(
-        private OperationExampleSpecFactory $operationExampleSpecFactory = new OperationExampleSpecFactory(),
-        private OperationExampleGenerator $operationExampleGenerator = new OperationExampleGenerator(),
-    ) {
-    }
+        private OperationExampleSpecFactory $operationExampleSpecFactory = new OperationExampleSpecFactory,
+        private OperationExampleGenerator $operationExampleGenerator = new OperationExampleGenerator,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $config
@@ -1341,9 +1340,6 @@ final class OpenApiDocumentFactory
         ];
     }
 
-    /**
-     * @param  mixed  $shape
-     */
     private function shapeHasChildren(mixed $shape): bool
     {
         return is_array($shape) && $shape !== [];
@@ -1400,6 +1396,7 @@ final class OpenApiDocumentFactory
             $currentPath = $prefix === '' ? (string) $name : $prefix.'.'.$name;
             if (! is_array($childShape) || $childShape === []) {
                 $paths[] = $currentPath;
+
                 continue;
             }
 
@@ -1779,6 +1776,7 @@ final class OpenApiDocumentFactory
 
             if (is_array($value) && is_array($document[$key] ?? null)) {
                 $document[$key] = array_replace_recursive((array) $document[$key], $value);
+
                 continue;
             }
 

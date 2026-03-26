@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
 final readonly class GeneratedRequestExample
 {
@@ -16,8 +16,7 @@ final readonly class GeneratedRequestExample
         public array $queryParams = [],
         public mixed $body = null,
         public array $headers = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

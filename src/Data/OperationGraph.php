@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 final readonly class OperationGraph
 {
@@ -21,6 +21,5 @@ final readonly class OperationGraph
         public array $resources,
         public array $polymorphic,
         public array $broadcast,
-    ) {
-    }
+    ) {}
 }

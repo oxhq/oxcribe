@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Examples\Data\EndpointExampleContext;
-use Garaekz\Oxcribe\Examples\Data\ExampleField;
-use Garaekz\Oxcribe\Examples\Data\FieldConstraints;
-use Garaekz\Oxcribe\Examples\Data\FieldHints;
-use Garaekz\Oxcribe\Examples\Data\OperationExampleSpec;
-use Garaekz\Oxcribe\Examples\Data\ScenarioAuth;
-use Garaekz\Oxcribe\Examples\Data\ScenarioCompany;
-use Garaekz\Oxcribe\Examples\Data\ScenarioContext;
-use Garaekz\Oxcribe\Examples\Data\ScenarioPerson;
-use Garaekz\Oxcribe\Examples\ExampleMode;
+use Oxhq\Oxcribe\Examples\Data\EndpointExampleContext;
+use Oxhq\Oxcribe\Examples\Data\ExampleField;
+use Oxhq\Oxcribe\Examples\Data\FieldConstraints;
+use Oxhq\Oxcribe\Examples\Data\FieldHints;
+use Oxhq\Oxcribe\Examples\Data\OperationExampleSpec;
+use Oxhq\Oxcribe\Examples\Data\ScenarioAuth;
+use Oxhq\Oxcribe\Examples\Data\ScenarioCompany;
+use Oxhq\Oxcribe\Examples\Data\ScenarioContext;
+use Oxhq\Oxcribe\Examples\Data\ScenarioPerson;
+use Oxhq\Oxcribe\Examples\ExampleMode;
 
 it('serializes the smart examples ir deterministically', function () {
     $email = new ExampleField(

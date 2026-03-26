@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Http\Controllers;
+namespace Oxhq\Oxcribe\Http\Controllers;
 
 use Illuminate\Contracts\View\View;
 
@@ -20,4 +20,8 @@ final class DocsPageController
             'title' => (string) config('app.name', 'Laravel API').' Docs',
         ]);
     }
+}
+
+if (! class_exists(\Garaekz\Oxcribe\Http\Controllers\DocsPageController::class, false)) {
+    class_alias(DocsPageController::class, \Garaekz\Oxcribe\Http\Controllers\DocsPageController::class);
 }

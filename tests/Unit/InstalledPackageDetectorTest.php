@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Support\InstalledPackageDetector;
+use Oxhq\Oxcribe\Support\InstalledPackageDetector;
 
 it('detects relevant spatie packages from composer lock and composer json', function () {
     $tempDir = sys_get_temp_dir().'/oxcribe-spatie-'.bin2hex(random_bytes(6));
@@ -111,6 +111,7 @@ it('detects relevant spatie packages from composer lock and composer json', func
                 $path = $directory.DIRECTORY_SEPARATOR.$item;
                 if (is_dir($path)) {
                     $removeDirectory($path);
+
                     continue;
                 }
 

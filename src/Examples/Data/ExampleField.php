@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
 final readonly class ExampleField
 {
@@ -23,8 +23,7 @@ final readonly class ExampleField
         public FieldHints $hints,
         public ?string $format = null,
         public array $allowedValues = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

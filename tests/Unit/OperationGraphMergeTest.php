@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Auth\AuthProfile;
-use Garaekz\Oxcribe\Data\AnalysisResponse;
-use Garaekz\Oxcribe\Data\AppSnapshot;
-use Garaekz\Oxcribe\Data\RouteAction;
-use Garaekz\Oxcribe\Data\RouteBinding;
-use Garaekz\Oxcribe\Data\RouteSnapshot;
-use Garaekz\Oxcribe\Data\RuntimeSnapshot;
-use Garaekz\Oxcribe\Merge\OperationGraphMerger;
-use Garaekz\Oxcribe\OpenApi\OpenApiDocumentFactory;
+use Oxhq\Oxcribe\Auth\AuthProfile;
+use Oxhq\Oxcribe\Data\AnalysisResponse;
+use Oxhq\Oxcribe\Data\AppSnapshot;
+use Oxhq\Oxcribe\Data\RouteAction;
+use Oxhq\Oxcribe\Data\RouteBinding;
+use Oxhq\Oxcribe\Data\RouteSnapshot;
+use Oxhq\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Merge\OperationGraphMerger;
+use Oxhq\Oxcribe\OpenApi\OpenApiDocumentFactory;
 
 it('merges runtime routes with oxinfer controller matches', function () {
     $runtime = new RuntimeSnapshot(
@@ -284,7 +284,7 @@ it('builds an openapi document from the merged graph', function () {
             'title' => 'Laravel API',
             'version' => '0.1.0',
         ],
-        ])
+    ])
         ->and($document['paths']['/users']['get']['operationId'])->toBe('users.index_get')
         ->and($document['paths']['/users']['get']['responses'])->toHaveKey('200')
         ->and($document['paths']['/users']['get']['responses']['200']['content']['application/json']['schema'])->toMatchArray([

@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Bridge\AnalysisRequestFactory;
-use Garaekz\Oxcribe\Contracts\OxinferClient;
-use Garaekz\Oxcribe\Contracts\RuntimeSnapshotFactory;
-use Garaekz\Oxcribe\Data\AnalysisRequest;
-use Garaekz\Oxcribe\Data\AnalysisResponse;
-use Garaekz\Oxcribe\Data\AppSnapshot;
-use Garaekz\Oxcribe\Data\RouteAction;
-use Garaekz\Oxcribe\Data\RouteSnapshot;
-use Garaekz\Oxcribe\Data\RuntimeSnapshot;
-use Garaekz\Oxcribe\Docs\DocsPayloadFactory;
-use Garaekz\Oxcribe\Merge\OperationGraphMerger;
-use Garaekz\Oxcribe\OxcribeManager;
-use Garaekz\Oxcribe\Overrides\OverrideApplier;
-use Garaekz\Oxcribe\Overrides\OverrideLoader;
-use Garaekz\Oxcribe\OpenApi\OpenApiDocumentFactory;
-use Garaekz\Oxcribe\Support\ManifestFactory;
+use Oxhq\Oxcribe\Bridge\AnalysisRequestFactory;
+use Oxhq\Oxcribe\Contracts\OxinferClient;
+use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
+use Oxhq\Oxcribe\Data\AnalysisRequest;
+use Oxhq\Oxcribe\Data\AnalysisResponse;
+use Oxhq\Oxcribe\Data\AppSnapshot;
+use Oxhq\Oxcribe\Data\RouteAction;
+use Oxhq\Oxcribe\Data\RouteSnapshot;
+use Oxhq\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Docs\DocsPayloadFactory;
+use Oxhq\Oxcribe\Merge\OperationGraphMerger;
+use Oxhq\Oxcribe\OpenApi\OpenApiDocumentFactory;
+use Oxhq\Oxcribe\Overrides\OverrideApplier;
+use Oxhq\Oxcribe\Overrides\OverrideLoader;
+use Oxhq\Oxcribe\OxcribeManager;
+use Oxhq\Oxcribe\Support\ManifestFactory;
 
 it('applies route overrides before exporting the graph', function () {
     $projectRoot = sys_get_temp_dir().'/oxcribe-manager-'.bin2hex(random_bytes(4));
@@ -159,10 +159,9 @@ PHP);
         'diagnostics' => [],
     ]);
 
-    $runtimeSnapshotFactory = new class($runtime) implements RuntimeSnapshotFactory {
-        public function __construct(private readonly RuntimeSnapshot $runtime)
-        {
-        }
+    $runtimeSnapshotFactory = new class($runtime) implements RuntimeSnapshotFactory
+    {
+        public function __construct(private readonly RuntimeSnapshot $runtime) {}
 
         public function make(): RuntimeSnapshot
         {
@@ -170,10 +169,9 @@ PHP);
         }
     };
 
-    $oxinferClient = new class($response) implements OxinferClient {
-        public function __construct(private readonly AnalysisResponse $response)
-        {
-        }
+    $oxinferClient = new class($response) implements OxinferClient
+    {
+        public function __construct(private readonly AnalysisResponse $response) {}
 
         public function analyze(AnalysisRequest $request): AnalysisResponse
         {

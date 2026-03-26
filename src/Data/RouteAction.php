@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 final readonly class RouteAction
 {
@@ -10,8 +10,7 @@ final readonly class RouteAction
         public string $kind,
         public ?string $fqcn = null,
         public ?string $method = null,
-    ) {
-    }
+    ) {}
 
     public function signature(): string
     {

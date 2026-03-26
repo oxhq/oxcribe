@@ -1,5 +1,5 @@
 {
-  "name": "garaekz/oxcribe-policy-fixture",
+  "name": "oxhq/oxcribe-policy-fixture",
   "type": "project",
   "autoload": {
     "psr-4": {

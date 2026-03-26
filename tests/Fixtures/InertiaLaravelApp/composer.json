@@ -1,5 +1,5 @@
 {
-  "name": "garaekz/oxcribe-inertia-fixture",
+  "name": "oxhq/oxcribe-inertia-fixture",
   "type": "project",
   "require": {
     "php": "^8.2",

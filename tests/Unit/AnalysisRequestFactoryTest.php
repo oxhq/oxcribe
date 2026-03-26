@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Bridge\AnalysisRequestFactory;
-use Garaekz\Oxcribe\Data\AppSnapshot;
-use Garaekz\Oxcribe\Data\PackageInventorySnapshot;
-use Garaekz\Oxcribe\Data\PackageSnapshot;
-use Garaekz\Oxcribe\Data\RuntimeSnapshot;
-use Garaekz\Oxcribe\Data\SpatiePackageSnapshot;
+use Oxhq\Oxcribe\Bridge\AnalysisRequestFactory;
+use Oxhq\Oxcribe\Data\AppSnapshot;
+use Oxhq\Oxcribe\Data\PackageInventorySnapshot;
+use Oxhq\Oxcribe\Data\PackageSnapshot;
+use Oxhq\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Data\SpatiePackageSnapshot;
 
 it('embeds package inventory facts in the analysis request payload', function () {
     $runtime = new RuntimeSnapshot(

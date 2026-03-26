@@ -1,5 +1,5 @@
 {
-  "name": "garaekz/oxcribe-spatie-fixture",
+  "name": "oxhq/oxcribe-spatie-fixture",
   "type": "project",
   "require": {
     "php": "^8.2",

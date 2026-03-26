@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Contracts;
+namespace Oxhq\Oxcribe\Contracts;
 
-use Garaekz\Oxcribe\Data\PackageInventorySnapshot;
+use Oxhq\Oxcribe\Data\PackageInventorySnapshot;
 
 interface PackageInventoryDetector
 {

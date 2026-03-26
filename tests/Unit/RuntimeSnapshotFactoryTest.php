@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Contracts\PackageInventoryDetector;
-use Garaekz\Oxcribe\Contracts\RuntimeSnapshotFactory;
-use Garaekz\Oxcribe\Data\PackageInventorySnapshot;
-use Garaekz\Oxcribe\Data\PackageSnapshot;
-use Garaekz\Oxcribe\Data\SpatiePackageSnapshot;
 use Illuminate\Support\Facades\Route;
+use Oxhq\Oxcribe\Contracts\PackageInventoryDetector;
+use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
+use Oxhq\Oxcribe\Data\PackageInventorySnapshot;
+use Oxhq\Oxcribe\Data\PackageSnapshot;
+use Oxhq\Oxcribe\Data\SpatiePackageSnapshot;
 
 it('builds a runtime snapshot with application metadata and routes', function () {
     app()->instance(PackageInventoryDetector::class, new class implements PackageInventoryDetector

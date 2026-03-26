@@ -2,22 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples;
+namespace Oxhq\Oxcribe\Examples;
 
-use Garaekz\Oxcribe\Data\MergedOperation;
-use Garaekz\Oxcribe\Data\RouteBinding;
-use Garaekz\Oxcribe\Examples\Data\EndpointExampleContext;
-use Garaekz\Oxcribe\Examples\Data\ExampleField;
-use Garaekz\Oxcribe\Examples\Data\OperationExampleSpec;
-use Garaekz\Oxcribe\OpenApi\Support\RequestFieldIndex;
+use Oxhq\Oxcribe\Data\MergedOperation;
+use Oxhq\Oxcribe\Data\RouteBinding;
+use Oxhq\Oxcribe\Examples\Data\EndpointExampleContext;
+use Oxhq\Oxcribe\Examples\Data\ExampleField;
+use Oxhq\Oxcribe\Examples\Data\OperationExampleSpec;
+use Oxhq\Oxcribe\OpenApi\Support\RequestFieldIndex;
 
 final readonly class OperationExampleSpecFactory
 {
     public function __construct(
-        private OperationKindResolver $operationKindResolver = new OperationKindResolver(),
-        private FieldClassifier $fieldClassifier = new FieldClassifier(),
-    ) {
-    }
+        private OperationKindResolver $operationKindResolver = new OperationKindResolver,
+        private FieldClassifier $fieldClassifier = new FieldClassifier,
+    ) {}
 
     public function make(MergedOperation $operation): OperationExampleSpec
     {

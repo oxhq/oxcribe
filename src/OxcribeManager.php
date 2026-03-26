@@ -2,19 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe;
+namespace Oxhq\Oxcribe;
 
-use Garaekz\Oxcribe\Bridge\AnalysisRequestFactory;
-use Garaekz\Oxcribe\Contracts\OxinferClient;
-use Garaekz\Oxcribe\Contracts\RuntimeSnapshotFactory;
-use Garaekz\Oxcribe\Data\AnalysisResponse;
-use Garaekz\Oxcribe\Data\OperationGraph;
-use Garaekz\Oxcribe\Docs\DocsPayloadFactory;
-use Garaekz\Oxcribe\Merge\OperationGraphMerger;
-use Garaekz\Oxcribe\Overrides\OverrideApplier;
-use Garaekz\Oxcribe\Overrides\OverrideLoader;
-use Garaekz\Oxcribe\Overrides\OverrideSet;
-use Garaekz\Oxcribe\OpenApi\OpenApiDocumentFactory;
+use Oxhq\Oxcribe\Bridge\AnalysisRequestFactory;
+use Oxhq\Oxcribe\Contracts\OxinferClient;
+use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
+use Oxhq\Oxcribe\Data\AnalysisResponse;
+use Oxhq\Oxcribe\Data\OperationGraph;
+use Oxhq\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Docs\DocsPayloadFactory;
+use Oxhq\Oxcribe\Merge\OperationGraphMerger;
+use Oxhq\Oxcribe\OpenApi\OpenApiDocumentFactory;
+use Oxhq\Oxcribe\Overrides\OverrideApplier;
+use Oxhq\Oxcribe\Overrides\OverrideLoader;
+use Oxhq\Oxcribe\Overrides\OverrideSet;
 
 final class OxcribeManager
 {
@@ -31,8 +32,7 @@ final class OxcribeManager
         private readonly OpenApiDocumentFactory $openApiDocumentFactory,
         private readonly DocsPayloadFactory $docsPayloadFactory,
         private readonly array $config,
-    ) {
-    }
+    ) {}
 
     public function analyze(?string $projectRoot = null): AnalysisResponse
     {
@@ -80,7 +80,7 @@ final class OxcribeManager
     }
 
     /**
-     * @return array{runtime: \Garaekz\Oxcribe\Data\RuntimeSnapshot, graph: OperationGraph}
+     * @return array{runtime: RuntimeSnapshot, graph: OperationGraph}
      */
     private function buildGraph(?string $projectRoot = null): array
     {

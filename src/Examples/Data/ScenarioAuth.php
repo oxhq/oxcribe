@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
 final readonly class ScenarioAuth
 {
@@ -10,8 +10,7 @@ final readonly class ScenarioAuth
         public string $password,
         public string $token,
         public string $apiKey,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, string>

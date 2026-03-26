@@ -16,7 +16,7 @@
 
 ## Real App Smoke
 
-- install `garaekz/oxcribe` in at least one external Laravel app
+- install `oxhq/oxcribe` in at least one external Laravel app
 - publish config
 - run `php artisan oxcribe:analyze --pretty`
 - run `php artisan oxcribe:export-openapi --pretty`

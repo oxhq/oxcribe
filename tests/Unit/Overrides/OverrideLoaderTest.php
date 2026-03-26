@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Overrides\OverrideLoader;
+use Oxhq\Oxcribe\Overrides\OverrideLoader;
 
 it('loads config defaults and project override files in order', function () {
     $projectRoot = sys_get_temp_dir().'/oxcribe-overrides-'.bin2hex(random_bytes(4));

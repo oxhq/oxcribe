@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 use JsonException;
 
@@ -17,8 +17,7 @@ final readonly class AnalysisRequest
         public string $runtimeFingerprint,
         public array $manifest,
         public RuntimeSnapshot $runtime,
-    ) {
-    }
+    ) {}
 
     public function toArray(): array
     {

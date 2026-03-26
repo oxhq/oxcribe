@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Bridge\AnalysisRequestFactory;
-use Garaekz\Oxcribe\Contracts\OxinferClient;
-use Garaekz\Oxcribe\Contracts\RuntimeSnapshotFactory;
-use Garaekz\Oxcribe\Data\AnalysisRequest;
-use Garaekz\Oxcribe\Data\AnalysisResponse;
-use Garaekz\Oxcribe\Data\AppSnapshot;
-use Garaekz\Oxcribe\Data\RouteAction;
-use Garaekz\Oxcribe\Data\RouteSnapshot;
-use Garaekz\Oxcribe\Data\RuntimeSnapshot;
-use Garaekz\Oxcribe\Support\ManifestFactory;
+use Oxhq\Oxcribe\Bridge\AnalysisRequestFactory;
+use Oxhq\Oxcribe\Contracts\OxinferClient;
+use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
+use Oxhq\Oxcribe\Data\AnalysisRequest;
+use Oxhq\Oxcribe\Data\AnalysisResponse;
+use Oxhq\Oxcribe\Data\AppSnapshot;
+use Oxhq\Oxcribe\Data\RouteAction;
+use Oxhq\Oxcribe\Data\RouteSnapshot;
+use Oxhq\Oxcribe\Data\RuntimeSnapshot;
+use Oxhq\Oxcribe\Support\ManifestFactory;
 
 it('serves the local docs page, openapi document, and docs payload from the package routes', function () {
     config()->set('oxcribe.docs.enabled', true);
@@ -116,10 +116,9 @@ it('serves the local docs page, openapi document, and docs payload from the pack
         'diagnostics' => [],
     ]);
 
-    app()->instance(RuntimeSnapshotFactory::class, new class($runtime) implements RuntimeSnapshotFactory {
-        public function __construct(private readonly RuntimeSnapshot $runtime)
-        {
-        }
+    app()->instance(RuntimeSnapshotFactory::class, new class($runtime) implements RuntimeSnapshotFactory
+    {
+        public function __construct(private readonly RuntimeSnapshot $runtime) {}
 
         public function make(): RuntimeSnapshot
         {
@@ -127,10 +126,9 @@ it('serves the local docs page, openapi document, and docs payload from the pack
         }
     });
 
-    app()->instance(OxinferClient::class, new class($response) implements OxinferClient {
-        public function __construct(private readonly AnalysisResponse $response)
-        {
-        }
+    app()->instance(OxinferClient::class, new class($response) implements OxinferClient
+    {
+        public function __construct(private readonly AnalysisResponse $response) {}
 
         public function analyze(AnalysisRequest $request): AnalysisResponse
         {

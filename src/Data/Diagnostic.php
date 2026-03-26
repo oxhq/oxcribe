@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 final readonly class Diagnostic
 {
@@ -15,8 +15,7 @@ final readonly class Diagnostic
         public ?string $actionKey = null,
         public ?string $file = null,
         public ?int $line = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload

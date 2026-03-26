@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
-use Garaekz\Oxcribe\Examples\ExampleMode;
+use Oxhq\Oxcribe\Examples\ExampleMode;
 
 final readonly class ScenarioContext
 {
@@ -18,8 +18,7 @@ final readonly class ScenarioContext
         public ?ScenarioCompany $company = null,
         public ?ScenarioAuth $auth = null,
         public array $resources = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

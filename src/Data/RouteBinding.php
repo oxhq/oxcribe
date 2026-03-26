@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Data;
+namespace Oxhq\Oxcribe\Data;
 
 final readonly class RouteBinding
 {
@@ -11,8 +11,7 @@ final readonly class RouteBinding
         public string $kind,
         public ?string $targetFqcn,
         public bool $isImplicit,
-    ) {
-    }
+    ) {}
 
     public function toArray(): array
     {

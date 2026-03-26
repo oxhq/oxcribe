@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Data\MergedOperation;
-use Garaekz\Oxcribe\Data\RouteAction;
-use Garaekz\Oxcribe\Data\RouteBinding;
-use Garaekz\Oxcribe\Data\RouteMatch;
-use Garaekz\Oxcribe\Examples\OperationExampleSpecFactory;
+use Oxhq\Oxcribe\Data\MergedOperation;
+use Oxhq\Oxcribe\Data\RouteAction;
+use Oxhq\Oxcribe\Data\RouteBinding;
+use Oxhq\Oxcribe\Data\RouteMatch;
+use Oxhq\Oxcribe\Examples\OperationExampleSpecFactory;
 
 it('builds an operation example spec from merged runtime and static metadata', function () {
-    $factory = new OperationExampleSpecFactory();
+    $factory = new OperationExampleSpecFactory;
 
     $operation = new MergedOperation(
         routeId: 'route-users-store',

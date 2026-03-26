@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Http\Controllers;
+namespace Oxhq\Oxcribe\Http\Controllers;
 
-use Garaekz\Oxcribe\OxcribeManager;
 use Illuminate\Http\JsonResponse;
+use Oxhq\Oxcribe\OxcribeManager;
 
 final class OpenApiDocumentController
 {
@@ -26,4 +26,8 @@ final class OpenApiDocumentController
 
         return $configured !== '' ? $configured : null;
     }
+}
+
+if (! class_exists(\Garaekz\Oxcribe\Http\Controllers\OpenApiDocumentController::class, false)) {
+    class_alias(OpenApiDocumentController::class, \Garaekz\Oxcribe\Http\Controllers\OpenApiDocumentController::class);
 }

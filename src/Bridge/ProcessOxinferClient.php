@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Bridge;
+namespace Oxhq\Oxcribe\Bridge;
 
-use Garaekz\Oxcribe\Contracts\OxinferClient;
-use Garaekz\Oxcribe\Data\AnalysisRequest;
-use Garaekz\Oxcribe\Data\AnalysisResponse;
+use Oxhq\Oxcribe\Contracts\OxinferClient;
+use Oxhq\Oxcribe\Data\AnalysisRequest;
+use Oxhq\Oxcribe\Data\AnalysisResponse;
 use RuntimeException;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
@@ -18,8 +18,7 @@ final class ProcessOxinferClient implements OxinferClient
      */
     public function __construct(
         private readonly array $config,
-    ) {
-    }
+    ) {}
 
     public function analyze(AnalysisRequest $request): AnalysisResponse
     {
@@ -72,7 +71,7 @@ final class ProcessOxinferClient implements OxinferClient
             );
         }
 
-        $finder = new ExecutableFinder();
+        $finder = new ExecutableFinder;
         $found = $finder->find($configured, null, [
             $workingDirectory,
             $workingDirectory.DIRECTORY_SEPARATOR.'bin',

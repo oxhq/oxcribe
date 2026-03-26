@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
 final readonly class ScenarioCompany
 {
@@ -11,8 +11,7 @@ final readonly class ScenarioCompany
         public string $email,
         public string $website,
         public string $domain,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, string>

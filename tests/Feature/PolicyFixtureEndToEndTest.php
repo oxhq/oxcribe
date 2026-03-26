@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-use Garaekz\Oxcribe\Contracts\RuntimeSnapshotFactory;
-use Garaekz\Oxcribe\OxcribeManager;
-use Garaekz\Oxcribe\Tests\Support\FixtureRuntimeSnapshotFactory;
+use Oxhq\Oxcribe\Contracts\PackageInventoryDetector;
+use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
+use Oxhq\Oxcribe\OxcribeManager;
+use Oxhq\Oxcribe\Support\RouteSnapshotExtractor;
+use Oxhq\Oxcribe\Tests\Support\FixtureRuntimeSnapshotFactory;
 use Symfony\Component\Process\Process;
 
 it('runs an end-to-end policy fixture through analyze and export-openapi', function () {
@@ -26,8 +28,8 @@ it('runs an end-to-end policy fixture through analyze and export-openapi', funct
     app()->instance(RuntimeSnapshotFactory::class, new FixtureRuntimeSnapshotFactory(
         app: app(),
         router: app('router'),
-        routeSnapshotExtractor: app(\Garaekz\Oxcribe\Support\RouteSnapshotExtractor::class),
-        packageInventoryDetector: app(\Garaekz\Oxcribe\Contracts\PackageInventoryDetector::class),
+        routeSnapshotExtractor: app(RouteSnapshotExtractor::class),
+        packageInventoryDetector: app(PackageInventoryDetector::class),
         fixtureRoot: $fixtureRoot,
         routeNamePrefix: 'policy-fixture.',
         routeGroupPrefix: '',

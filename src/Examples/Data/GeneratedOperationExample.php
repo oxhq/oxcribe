@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Examples\Data;
+namespace Oxhq\Oxcribe\Examples\Data;
 
-use Garaekz\Oxcribe\Examples\ExampleMode;
+use Oxhq\Oxcribe\Examples\ExampleMode;
 
 final readonly class GeneratedOperationExample
 {
@@ -15,8 +15,7 @@ final readonly class GeneratedOperationExample
         public GeneratedRequestExample $request,
         public GeneratedResponseExample $response,
         public SnippetSet $snippets,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

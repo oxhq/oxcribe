@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Garaekz\Oxcribe\Auth;
+namespace Oxhq\Oxcribe\Auth;
 
 final readonly class AuthMiddlewareMatch
 {
@@ -23,8 +23,7 @@ final readonly class AuthMiddlewareMatch
         public ?string $ability = null,
         public string $resolution = 'direct',
         public array $metadata = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{source: string, category: string, kind: string, values: list<string>, guards: list<string>, schemeCandidates: list<string>, subject?: ?string, ability?: ?string, resolution: string, metadata?: array<string, mixed>}
