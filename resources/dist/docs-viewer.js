@@ -641,6 +641,105 @@
         };
     }
 
+    function classifyResponseTone(code) {
+        if (String(code).startsWith('2')) {
+            return 'success';
+        }
+        if (String(code).startsWith('3')) {
+            return 'redirect';
+        }
+        if (String(code).startsWith('4')) {
+            return 'client_error';
+        }
+        if (String(code).startsWith('5')) {
+            return 'server_error';
+        }
+        return 'unknown';
+    }
+
+    function fallbackResponseDescription(code) {
+        if (String(code).startsWith('2')) {
+            return 'Successful response';
+        }
+        if (String(code).startsWith('3')) {
+            return 'Redirect response';
+        }
+        if (String(code).startsWith('4')) {
+            return 'Client error';
+        }
+        if (String(code).startsWith('5')) {
+            return 'Server error';
+        }
+        return 'Response';
+    }
+
+    function compareResponseEntries(left, right) {
+        const rank = (tone) => {
+            switch (tone) {
+                case 'success': return 0;
+                case 'redirect': return 1;
+                case 'client_error': return 2;
+                case 'server_error': return 3;
+                default: return 4;
+            }
+        };
+
+        const toneDelta = rank(left.tone) - rank(right.tone);
+        if (toneDelta !== 0) {
+            return toneDelta;
+        }
+
+        const leftNumber = Number.parseInt(left.code, 10);
+        const rightNumber = Number.parseInt(right.code, 10);
+        if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+            return leftNumber - rightNumber;
+        }
+
+        return String(left.code).localeCompare(String(right.code));
+    }
+
+    function summarizeResponses(operation, preferredStatus) {
+        const responses = operation?.responses || {};
+        const entries = Object.entries(responses)
+            .filter(([, value]) => isObjectLike(value))
+            .map(([code, value]) => ({
+                code,
+                description: String(value.description || '').trim() || fallbackResponseDescription(code),
+                tone: classifyResponseTone(code),
+            }))
+            .sort(compareResponseEntries);
+
+        const preferredCode = preferredStatus != null
+            ? String(preferredStatus)
+            : (entries.find((entry) => entry.code.startsWith('2'))?.code || entries[0]?.code || null);
+
+        const primary = entries.find((entry) => entry.code === preferredCode) || null;
+        const remaining = entries.filter((entry) => entry.code !== primary?.code);
+
+        return {
+            primary,
+            secondarySuccess: remaining.filter((entry) => entry.tone === 'success' || entry.tone === 'redirect'),
+            clientErrors: remaining.filter((entry) => entry.tone === 'client_error'),
+            serverErrors: remaining.filter((entry) => entry.tone === 'server_error'),
+            other: remaining.filter((entry) => entry.tone === 'unknown'),
+        };
+    }
+
+    function responseToneStyle(tone) {
+        switch (tone) {
+            case 'success':
+                return 'background: var(--color-green-dim); border: 1px solid rgba(61,214,140,0.25); color: var(--color-green);';
+            case 'redirect':
+                return 'background: var(--color-blue-dim); border: 1px solid rgba(91,156,245,0.25); color: var(--color-blue);';
+            case 'client_error':
+                return 'background: var(--color-amber-dim); border: 1px solid rgba(240,166,74,0.25); color: var(--color-amber);';
+            case 'server_error':
+                return 'background: var(--color-red-dim); border: 1px solid rgba(248,113,113,0.25); color: var(--color-red);';
+            default:
+                return 'background: var(--color-surface-hover); border: 1px solid var(--color-border-bright); color: var(--color-text-secondary);';
+        }
+    }
+
     function serializePath(path) {
         return encodeURIComponent(JSON.stringify(path));
     }
@@ -1015,6 +1114,8 @@
         const scenarios = availableScenarios(operation);
         const snippets = buildLiveSnippets(operation, currentHeaders(operation));
         const selectedScenarioData = scenarios.find((scenario) => scenario.key === state.scenarioKey) || null;
+        const activeExample = selectedExample(operation);
+        const responseSummary = summarizeResponses(operation, activeExample?.response?.status);
 
         return `
             <main class="ox-main">
@@ -1041,7 +1142,82 @@
                                 </div>
                             ` : ''}
                             ${selectedScenarioData?.description ? `<p class="ox-helper" style="margin-top:0.75rem;">${escapeHtml(selectedScenarioData.description)}</p>` : ''}
+                            <div class="ox-builder-grid" style="margin-top:1rem;">
+                                <div class="ox-panel" style="padding:0.9rem 1rem; background: rgba(255,255,255,0.02);">
+                                    <div class="ox-kicker">Response hierarchy</div>
+                                    <div class="ox-actions" style="margin-top:0.65rem;">
+                                        ${responseSummary.primary ? `
+                                            <span class="ox-pill" style="${responseToneStyle(responseSummary.primary.tone)}">${escapeHtml(responseSummary.primary.code)}</span>
+                                            <span class="ox-helper">Primary response</span>
+                                        ` : ''}
+                                        ${responseSummary.secondarySuccess.length > 0 ? `<span class="ox-pill">${responseSummary.secondarySuccess.length} other success</span>` : ''}
+                                        ${responseSummary.clientErrors.length > 0 ? `<span class="ox-pill" style="${responseToneStyle('client_error')}">${responseSummary.clientErrors.length} client errors</span>` : ''}
+                                        ${responseSummary.serverErrors.length > 0 ? `<span class="ox-pill" style="${responseToneStyle('server_error')}">${responseSummary.serverErrors.length} possible failures</span>` : ''}
+                                    </div>
+                                </div>
+                                <div class="ox-panel" style="padding:0.9rem 1rem; background: rgba(255,255,255,0.02);">
+                                    <div class="ox-kicker">Primary response</div>
+                                    ${responseSummary.primary ? `
+                                        <div class="ox-actions" style="margin-top:0.65rem;">
+                                            <span class="ox-pill" style="${responseToneStyle(responseSummary.primary.tone)}">${escapeHtml(responseSummary.primary.code)}</span>
+                                            <span class="ox-helper">${escapeHtml(responseSummary.primary.description)}</span>
+                                        </div>
+                                    ` : '<p class="ox-helper" style="margin-top:0.65rem;">No response metadata available.</p>'}
+                                </div>
+                            </div>
                         </section>
+
+                        ${(responseSummary.secondarySuccess.length > 0 || responseSummary.clientErrors.length > 0 || responseSummary.serverErrors.length > 0 || responseSummary.other.length > 0) ? `
+                            <section class="ox-panel ox-section">
+                                <div class="ox-builder-grid">
+                                    ${responseSummary.secondarySuccess.length > 0 ? `
+                                        <div class="ox-panel" style="padding:0.9rem 1rem; background: rgba(255,255,255,0.02);">
+                                            <div class="ox-kicker">Other success responses</div>
+                                            <div class="ox-stack" style="margin-top:0.75rem;">
+                                                ${responseSummary.secondarySuccess.map((entry) => `
+                                                    <div class="ox-actions">
+                                                        <span class="ox-pill" style="${responseToneStyle(entry.tone)}">${escapeHtml(entry.code)}</span>
+                                                        <span class="ox-helper">${escapeHtml(entry.description)}</span>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    ${responseSummary.clientErrors.length > 0 ? `
+                                        <div class="ox-panel" style="padding:0.9rem 1rem; background: rgba(240,166,74,0.08); border-color: rgba(240,166,74,0.22);">
+                                            <div class="ox-kicker" style="color: var(--color-amber);">Client errors</div>
+                                            <div class="ox-stack" style="margin-top:0.75rem;">
+                                                ${responseSummary.clientErrors.map((entry) => `
+                                                    <div class="ox-actions">
+                                                        <span class="ox-pill" style="${responseToneStyle(entry.tone)}">${escapeHtml(entry.code)}</span>
+                                                        <span class="ox-helper">${escapeHtml(entry.description)}</span>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    ${(responseSummary.serverErrors.length > 0 || responseSummary.other.length > 0) ? `
+                                        <div class="ox-panel" style="padding:0.9rem 1rem; background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.22);">
+                                            <div class="ox-kicker" style="color: var(--color-red);">Possible failures</div>
+                                            <div class="ox-stack" style="margin-top:0.75rem;">
+                                                ${responseSummary.serverErrors.map((entry) => `
+                                                    <div class="ox-actions">
+                                                        <span class="ox-pill" style="${responseToneStyle(entry.tone)}">${escapeHtml(entry.code)}</span>
+                                                        <span class="ox-helper">${escapeHtml(entry.description)}</span>
+                                                    </div>
+                                                `).join('')}
+                                                ${responseSummary.other.map((entry) => `
+                                                    <div class="ox-actions">
+                                                        <span class="ox-pill" style="${responseToneStyle(entry.tone)}">${escapeHtml(entry.code)}</span>
+                                                        <span class="ox-helper">${escapeHtml(entry.description)}</span>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </section>
+                        ` : ''}
 
                         ${pathSchema ? `
                             <section class="ox-panel ox-section">
@@ -1094,7 +1270,10 @@
                                     <h3>Response example</h3>
                                     <p>Projected response for the current mode and scenario.</p>
                                 </div>
-                                <button class="ox-button" type="button" data-action="copy-response">Copy</button>
+                                <div class="ox-actions">
+                                    ${responseSummary.primary ? `<span class="ox-pill" style="${responseToneStyle(responseSummary.primary.tone)}">${escapeHtml(responseSummary.primary.code)}</span>` : ''}
+                                    <button class="ox-button" type="button" data-action="copy-response">Copy</button>
+                                </div>
                             </div>
                             <pre class="ox-code">${escapeHtml(state.responseBodyText)}</pre>
                         </section>

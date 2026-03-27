@@ -7,6 +7,7 @@ use Oxhq\Oxcribe\Data\RouteAction;
 use Oxhq\Oxcribe\Data\RouteBinding;
 use Oxhq\Oxcribe\Data\RouteMatch;
 use Oxhq\Oxcribe\Examples\OperationExampleSpecFactory;
+use Oxhq\Oxcribe\OpenApi\Support\ResourceSchemaIndex;
 
 it('builds an operation example spec from merged runtime and static metadata', function () {
     $factory = new OperationExampleSpecFactory;
@@ -179,4 +180,123 @@ it('treats body-only GET form request fields as query params in example specs', 
     expect($spec['queryParams'])->toHaveCount(2)
         ->and(collect($spec['queryParams'])->pluck('name')->all())->toBe(['limit', 'search'])
         ->and($spec['requestFields'])->toBe([]);
+});
+
+it('hydrates query params from legacy request query shapes when indexed fields are missing', function () {
+    $factory = new OperationExampleSpecFactory;
+
+    $operation = new MergedOperation(
+        routeId: 'route-games-index',
+        methods: ['GET'],
+        uri: 'api/games',
+        domain: null,
+        name: 'games.index',
+        prefix: 'api',
+        middleware: ['api'],
+        where: [],
+        defaults: [],
+        bindings: [],
+        action: new RouteAction('controller_method', 'App\\Http\\Controllers\\Api\\DiscoveryController', 'games'),
+        routeMatch: new RouteMatch(
+            routeId: 'route-games-index',
+            actionKind: 'controller_method',
+            matchStatus: 'matched',
+            actionKey: 'App\\Http\\Controllers\\Api\\DiscoveryController::games',
+        ),
+        controller: [
+            'fqcn' => 'App\\Http\\Controllers\\Api\\DiscoveryController',
+            'method' => 'games',
+            'request' => [
+                'query' => [
+                    'search' => [
+                        'type' => 'string',
+                    ],
+                    'limit' => [
+                        'type' => ['integer', 'null'],
+                    ],
+                ],
+            ],
+            'responses' => [],
+        ],
+    );
+
+    $spec = $factory->make($operation)->toArray();
+
+    expect($spec['queryParams'])->toHaveCount(2)
+        ->and(collect($spec['queryParams'])->pluck('name')->all())->toBe(['limit', 'search'])
+        ->and(collect($spec['queryParams'])->keyBy('name')['limit'])->toMatchArray([
+            'baseType' => 'integer',
+            'path' => 'query.limit',
+        ])
+        ->and($spec['requestFields'])->toBe([]);
+});
+
+it('expands referenced response resources into concrete example fields', function () {
+    $factory = new OperationExampleSpecFactory;
+    $resourceIndex = new ResourceSchemaIndex([
+        [
+            'fqcn' => 'App\\Http\\Resources\\GameResource',
+            'class' => 'GameResource',
+            'schema' => [
+                'type' => 'object',
+                'properties' => [
+                    'id' => ['type' => 'integer'],
+                    'name' => ['type' => 'string'],
+                    'has_image' => ['type' => 'boolean'],
+                ],
+                'required' => ['id', 'name', 'has_image'],
+            ],
+        ],
+    ]);
+
+    $operation = new MergedOperation(
+        routeId: 'route-games-index',
+        methods: ['GET'],
+        uri: 'api/games',
+        domain: null,
+        name: 'games.index',
+        prefix: 'api',
+        middleware: ['api'],
+        where: [],
+        defaults: [],
+        bindings: [],
+        action: new RouteAction('controller_method', 'App\\Http\\Controllers\\Api\\DiscoveryController', 'games'),
+        routeMatch: new RouteMatch(
+            routeId: 'route-games-index',
+            actionKind: 'controller_method',
+            matchStatus: 'matched',
+            actionKey: 'App\\Http\\Controllers\\Api\\DiscoveryController::games',
+        ),
+        controller: [
+            'fqcn' => 'App\\Http\\Controllers\\Api\\DiscoveryController',
+            'method' => 'games',
+            'request' => [],
+            'responses' => [
+                [
+                    'status' => 200,
+                    'kind' => 'json_object',
+                    'bodySchema' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'data' => [
+                                'type' => 'array',
+                                'items' => [
+                                    'ref' => 'App\\Http\\Resources\\GameResource',
+                                ],
+                            ],
+                        ],
+                        'required' => ['data'],
+                    ],
+                ],
+            ],
+        ],
+    );
+
+    $spec = $factory->make($operation, $resourceIndex)->toArray();
+
+    expect(collect($spec['responseFields'])->pluck('path')->all())->toContain(
+        'response.data[].id',
+        'response.data[].name',
+        'response.data[].has_image',
+    );
 });

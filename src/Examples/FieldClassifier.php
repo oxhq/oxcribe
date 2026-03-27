@@ -128,6 +128,14 @@ final class FieldClassifier
             return 'enum';
         }
 
+        if (str_ends_with($normalized, '_ids')) {
+            $sources[] = 'field_name';
+            $via[] = $normalized;
+            $confidence += 0.4;
+
+            return 'foreign_key_id';
+        }
+
         if (str_ends_with($normalized, '_id') || $normalized === 'id') {
             $sources[] = 'field_name';
             $via[] = $normalized;
@@ -200,8 +208,32 @@ final class FieldClassifier
             'full_name' => ['full_name', 'display_name'],
             'phone' => ['phone', 'phone_number', 'mobile', 'cellphone', 'whatsapp'],
             'company_name' => ['company', 'company_name', 'business_name', 'organization', 'org_name'],
-            'url' => ['url', 'website', 'callback_url', 'avatar_url', 'image_url'],
-            'slug' => ['slug'],
+            'domain' => ['domain'],
+            'url' => ['url', 'website', 'callback_url', 'avatar_url', 'image_url', 'image', 'avatar', 'thumbnail', 'logo', 'banner', 'cover', 'social_link', 'social_links'],
+            'title' => ['title', 'headline'],
+            'genre' => ['genre'],
+            'icon_name' => ['icon'],
+            'label' => ['label'],
+            'kind' => ['type', 'kind'],
+            'attribute_value' => ['value'],
+            'color' => ['color', 'accent_color', 'hex_color'],
+            'search_term' => ['search', 'query', 'q', 'term', 'keyword'],
+            'page_size' => ['limit', 'per_page', 'page_size', 'pageSize'],
+            'platform' => ['platform', 'primary_platform'],
+            'language' => ['language', 'locale'],
+            'role' => ['role'],
+            'creator_role' => ['creator_type', 'role_type'],
+            'gender' => ['gender'],
+            'tagline' => ['tagline', 'bio', 'summary', 'description'],
+            'highlight' => ['highlight', 'highlights'],
+            'timeslot' => ['timeslot', 'availability', 'slot'],
+            'message' => ['message'],
+            'error_message' => ['error', 'errors', 'error_message'],
+            'note' => ['note', 'notes'],
+            'request_payload' => ['request'],
+            'json_blob' => ['properties', 'extra'],
+            'status' => ['status'],
+            'slug' => ['slug', 'list'],
             'uuid' => ['uuid'],
             'ulid' => ['ulid'],
             'token' => ['token', 'access_token', 'refresh_token'],
@@ -228,10 +260,25 @@ final class FieldClassifier
                 return 'company_name';
             }
 
+            if ($this->resourcePrefersTitles($operationKind, $path)) {
+                return 'title';
+            }
+
             return 'full_name';
         }
 
         return null;
+    }
+
+    private function resourcePrefersTitles(string $operationKind, string $path): bool
+    {
+        foreach (['games', 'posts', 'articles', 'pages', 'videos', 'series', 'streams', 'movies', 'episodes'] as $needle) {
+            if (str_contains($operationKind, $needle.'.') || str_contains($path, '/'.$needle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function baseType(string $location, array $metadata): string
@@ -292,6 +339,8 @@ final class FieldClassifier
 
     private function normalizeName(string $name): string
     {
+        $name = preg_replace('/([a-z0-9])([A-Z])/', '$1_$2', $name) ?? $name;
+
         return strtolower(str_replace('-', '_', $name));
     }
 

@@ -106,10 +106,15 @@ return [
         ],
         'route_filters' => [
             'exclude_uri_prefixes' => [
+                'oxcribe',
                 '_boost',
                 '_debugbar',
                 '_ignition',
                 '_telescope',
+            ],
+            'exclude_uri_exact' => [
+                'docs/api.json',
+                'up',
             ],
         ],
         'security' => [

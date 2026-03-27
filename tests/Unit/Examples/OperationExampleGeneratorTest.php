@@ -143,6 +143,144 @@ it('derives named scenarios for collection-heavy operations', function () {
         ->and($multiple->example->request->body['items'])->toHaveCount(3);
 });
 
+it('generates catalog-friendly titles, genres, and media urls', function () {
+    $generator = new OperationExampleGenerator;
+
+    $spec = new OperationExampleSpec(
+        endpoint: new EndpointExampleContext(
+            method: 'GET',
+            path: '/api/games',
+            routeName: 'games.index',
+            actionKey: 'App\\Http\\Controllers\\Api\\DiscoveryController::games',
+            operationKind: 'games.index',
+        ),
+        responseFields: [
+            exampleField('response.data[].name', 'response', 'string', 'title', true, false, collection: false),
+            exampleField('response.data[].genre', 'response', 'string', 'genre', true, false, collection: false),
+            exampleField('response.data[].image', 'response', 'string', 'url', true, false, collection: false),
+        ],
+        responseStatuses: [200],
+    );
+
+    $example = $generator->generate($spec, 'project-games', ExampleMode::HappyPath)->toArray();
+    $first = $example['response']['body']['data'][0];
+
+    expect($first['name'])->toContain(' ')
+        ->and($first['name'])->not->toContain('@')
+        ->and($first['genre'])->toBeString()
+        ->and($first['image'])->toContain('https://images.example.test/');
+});
+
+it('generates richer directory and filter examples for product-like payloads', function () {
+    $generator = new OperationExampleGenerator;
+
+    $spec = new OperationExampleSpec(
+        endpoint: new EndpointExampleContext(
+            method: 'GET',
+            path: '/api/creators/{creator}/creator-information',
+            routeName: 'creators.information.index',
+            actionKey: 'App\\Http\\Controllers\\CreatorInformationController::index',
+            operationKind: 'creators.information.index',
+        ),
+        queryParams: [
+            exampleField('query.search', 'query', 'string', 'search_term', false, false, confidence: 0.9),
+            exampleField('query.limit', 'query', 'integer', 'page_size', false, false, confidence: 0.9),
+        ],
+        responseFields: [
+            exampleField('response.data[].icon', 'response', 'string', 'icon_name', true, false),
+            exampleField('response.data[].label', 'response', 'string', 'label', true, false),
+            exampleField('response.data[].type', 'response', 'string', 'kind', true, false),
+            exampleField('response.data[].value', 'response', 'string', 'attribute_value', true, false),
+            exampleField('response.data[].color', 'response', 'string', 'color', false, false),
+            exampleField('response.data[].primary_platform', 'response', 'string', 'platform', false, false),
+            exampleField('response.data[].language', 'response', 'string', 'language', false, false),
+        ],
+        responseStatuses: [200],
+    );
+
+    $example = $generator->generate($spec, 'project-creators', ExampleMode::HappyPath)->toArray();
+    $first = $example['response']['body']['data'][0];
+
+    expect($example['request']['queryParams']['search'])->not->toStartWith('example_')
+        ->and($example['request']['queryParams']['limit'])->toBeIn([10, 12, 20, 25, 50])
+        ->and($first['icon'])->toBeIn(['twitch', 'youtube', 'discord', 'calendar', 'location', 'globe'])
+        ->and($first['label'])->not->toStartWith('example_')
+        ->and($first['type'])->not->toStartWith('example_')
+        ->and($first['value'])->not->toStartWith('example_')
+        ->and($first['color'])->toStartWith('#')
+        ->and($first['primary_platform'])->toBeIn(['Twitch', 'YouTube', 'TikTok', 'Kick', 'Discord'])
+        ->and($first['language'])->toBeIn(['English', 'Spanish', 'Portuguese', 'French']);
+});
+
+it('generates richer highlights, social links, status, and error strings', function () {
+    $generator = new OperationExampleGenerator;
+
+    $spec = new OperationExampleSpec(
+        endpoint: new EndpointExampleContext(
+            method: 'GET',
+            path: '/api/creators',
+            routeName: 'creators.index',
+            actionKey: 'App\\Http\\Controllers\\CreatorController::index',
+            operationKind: 'creators.index',
+        ),
+        responseFields: [
+            exampleField('response.data[].highlights[]', 'response', 'array', 'highlight', true, false, collection: true),
+            exampleField('response.data[].social_links[]', 'response', 'array', 'url', true, false, collection: true),
+            exampleField('response.data[].status', 'response', 'string', 'status', true, false),
+            exampleField('response.errors[]', 'response', 'array', 'error_message', true, false, collection: true),
+        ],
+        responseStatuses: [200],
+    );
+
+    $example = $generator->generate($spec, 'project-richness', ExampleMode::HappyPath)->toArray();
+    $first = $example['response']['body']['data'][0];
+
+    expect($first['highlights'][0])->not->toStartWith('example_')
+        ->and($first['social_links'][0])->toContain('https://')
+        ->and($first['status'])->toBeIn(['active', 'live', 'draft', 'scheduled'])
+        ->and($example['response']['body']['errors'][0])->not->toStartWith('example_');
+});
+
+it('generates richer collection, domain, request payload, and note examples without placeholders', function () {
+    $generator = new OperationExampleGenerator;
+
+    $spec = new OperationExampleSpec(
+        endpoint: new EndpointExampleContext(
+            method: 'POST',
+            path: '/api/organizations/{organization}/users',
+            routeName: 'organizations.users.store',
+            actionKey: 'App\\Http\\Controllers\\OrganizationUserController::store',
+            operationKind: 'organizations.users.store',
+        ),
+        pathParams: [
+            exampleField('path.broadcastId', 'path', 'integer', 'foreign_key_id', true, false),
+        ],
+        requestFields: [
+            exampleField('body.domain', 'body', 'string', 'domain', true, false),
+            exampleField('body.request', 'body', 'string', 'request_payload', true, false),
+            exampleField('body.note', 'body', 'string', 'note', false, true),
+            exampleField('body.workspaces', 'body', 'string', 'string', true, false, collection: true),
+            exampleField('body.platform_accounts', 'body', 'string', 'string', false, true, collection: true),
+            exampleField('body.properties', 'body', 'string', 'json_blob', false, true),
+            exampleField('body.role', 'body', 'string', 'role', true, false),
+        ],
+        responseStatuses: [201],
+    );
+
+    $example = $generator->generate($spec, 'project-premium', ExampleMode::RealisticFull)->toArray();
+
+    expect($example['request']['pathParams']['broadcastId'])->toBeInt()
+        ->and($example['request']['body']['domain'])->toEndWith('.gg')
+        ->and($example['request']['body']['request'])->not->toStartWith('example_')
+        ->and($example['request']['body']['note'])->not->toStartWith('example_')
+        ->and($example['request']['body']['properties'])->toStartWith('{')
+        ->and($example['request']['body']['role'])->toBeIn(['member', 'editor', 'admin'])
+        ->and($example['request']['body']['workspaces'])->toBeArray()
+        ->and($example['request']['body']['workspaces'][0])->toBeInt()
+        ->and($example['request']['body']['platform_accounts'])->toBeArray()
+        ->and($example['request']['body']['platform_accounts'][0])->toHaveKeys(['platform', 'handle']);
+});
+
 /**
  * @param  list<string>  $allowedValues
  */

@@ -20,6 +20,29 @@ final class DeterministicValueGenerator
             'first_name' => $index === null ? ($context->person?->firstName ?? $this->indexedFirstName($context, $salt)) : $this->indexedFirstName($context, $salt),
             'last_name' => $index === null ? ($context->person?->lastName ?? $this->indexedLastName($context, $salt)) : $this->indexedLastName($context, $salt),
             'full_name' => $index === null ? ($context->person?->fullName ?? $this->indexedFullName($context, $salt)) : $this->indexedFullName($context, $salt),
+            'title' => $this->titleValue($context, $salt),
+            'genre' => $this->pick(['Action RPG', 'Tactical Shooter', 'MOBA', 'Battle Royale', 'Kart Racer', 'Indie Platformer'], $context->seed, $salt),
+            'domain' => $this->domainValue($context, $salt),
+            'icon_name' => $this->pick(['twitch', 'youtube', 'discord', 'calendar', 'location', 'globe'], $context->seed, $salt),
+            'label' => $this->pick(['Platform', 'Language', 'Region', 'Schedule', 'Community'], $context->seed, $salt),
+            'kind' => $this->pick(['badge', 'profile', 'social', 'availability', 'highlight'], $context->seed, $salt),
+            'attribute_value' => $this->attributeValue($context, $salt),
+            'color' => $this->pick(['#FF6B6B', '#4ECDC4', '#F7B801', '#6C5CE7', '#00B894', '#0984E3'], $context->seed, $salt),
+            'search_term' => $this->pick(['league', 'creator', 'valorant', 'fifa', 'streamer', 'tournament'], $context->seed, $salt),
+            'page_size' => $this->pageSizeValue($context->seed, $salt),
+            'platform' => $this->pick(['Twitch', 'YouTube', 'TikTok', 'Kick', 'Discord'], $context->seed, $salt),
+            'language' => $this->pick(['English', 'Spanish', 'Portuguese', 'French'], $context->seed, $salt),
+            'creator_role' => $this->pick(['Streamer', 'Caster', 'Analyst', 'Host', 'Coach'], $context->seed, $salt),
+            'gender' => $this->pick(['Female', 'Male', 'Non-binary'], $context->seed, $salt),
+            'tagline' => $this->pick(['Competitive energy with community-first streams.', 'Late-night ranked sessions and watch parties.', 'Creator-led coverage for esports and games.'], $context->seed, $salt),
+            'highlight' => $this->pick(['Top 8 finish at the last major.', 'Daily ranked grind with community co-streams.', 'Featured on this week\'s tournament recap.'], $context->seed, $salt),
+            'timeslot' => $this->pick(['Weeknights', 'Weekends', 'Afternoons', 'Late nights'], $context->seed, $salt),
+            'message' => $this->pick(['Operation completed successfully.', 'Request accepted and queued.', 'Resource updated successfully.'], $context->seed, $salt),
+            'error_message' => $this->pick(['Something went wrong while processing the request.', 'Unable to complete the action right now.', 'The server could not process this request.'], $context->seed, $salt),
+            'status' => $this->pick(['active', 'live', 'draft', 'scheduled'], $context->seed, $salt),
+            'note' => $this->pick(['Follow up after the next stream recap.', 'Prioritize creators with strong watch-party engagement.', 'Keep this list focused on weekly collaboration targets.'], $context->seed, $salt),
+            'request_payload' => $this->pick(['sync_recent_creators', 'refresh_live_content_tables', 'hydrate_workspace_catalog'], $context->seed, $salt),
+            'json_blob' => $this->jsonBlobValue($context, $salt),
             'username' => $index === null ? ($context->person?->username ?? $this->indexedUsername($context, $salt)) : $this->indexedUsername($context, $salt),
             'phone' => $index === null ? ($context->person?->phone ?? $this->indexedPhone($context, $salt)) : $this->indexedPhone($context, $salt),
             'company_name' => $context->company?->name ?? 'Acme Logistics',
@@ -41,12 +64,57 @@ final class DeterministicValueGenerator
             'city' => $this->pick(['Tijuana', 'Monterrey', 'Guadalajara', 'Merida'], $context->seed, $salt),
             'state' => $this->pick(['Baja California', 'Jalisco', 'Nuevo Leon', 'Yucatan'], $context->seed, $salt),
             'country' => 'Mexico',
-            'role', 'status', 'state', 'type', 'enum' => $field->allowedValues[0] ?? 'default',
+            'role' => $field->allowedValues[0] ?? $this->pick(['member', 'editor', 'admin'], $context->seed, $salt),
+            'state' => $field->allowedValues[0] ?? $this->pick(['active', 'draft', 'archived'], $context->seed, $salt),
+            'type' => $field->allowedValues[0] ?? $this->pick(['manual', 'automatic', 'primary'], $context->seed, $salt),
+            'enum' => $field->allowedValues[0] ?? 'default',
             'boolean' => true,
             'integer' => $this->integer($context->seed, $salt, 1, 999),
             'number' => $this->decimal($context->seed, $salt, 1, 999),
             default => $this->fallbackValue($field, $context, $salt),
         };
+    }
+
+    public function generateCollectionItem(ExampleField $field, ScenarioContext $context, int $index): mixed
+    {
+        $normalizedName = $this->normalizedFieldName($field);
+
+        if (str_contains($normalizedName, 'platform_account')) {
+            return [
+                'platform' => $this->pick(['Twitch', 'YouTube', 'TikTok', 'Kick'], $context->seed, $field->path.'#platform#'.$index),
+                'handle' => $this->indexedUsername($context, $field->path.'#handle#'.$index),
+            ];
+        }
+
+        if (str_contains($normalizedName, 'workspace') || str_ends_with($normalizedName, '_ids') || str_ends_with($normalizedName, 'ids')) {
+            return $this->integer($context->seed, $field->path.'#item#'.$index, 1, 999);
+        }
+
+        if (str_contains($normalizedName, 'social_link')) {
+            return $this->urlValue($field, $context);
+        }
+
+        if (str_contains($normalizedName, 'highlight')) {
+            return $this->pick(['Top 8 finish at the last major.', 'Daily ranked grind with community co-streams.', 'Featured on this week\'s tournament recap.'], $context->seed, $field->path.'#item#'.$index);
+        }
+
+        if (str_contains($normalizedName, 'error')) {
+            return $this->pick(['Something went wrong while processing the request.', 'Unable to complete the action right now.', 'The server could not process this request.'], $context->seed, $field->path.'#item#'.$index);
+        }
+
+        if (str_contains($normalizedName, 'tag')) {
+            return $this->pick(['featured', 'weekly-pick', 'high-engagement', 'priority'], $context->seed, $field->path.'#item#'.$index);
+        }
+
+        if (! in_array($field->semanticType, ['array', 'object'], true) && $field->baseType !== 'array' && $field->baseType !== 'object') {
+            return $this->generate($field, $context, $index);
+        }
+
+        return $this->pick([
+            $this->slugPart($field->name).'-primary',
+            $this->slugPart($field->name).'-secondary',
+            $this->slugPart($field->name).'-featured',
+        ], $context->seed, $field->path.'#item#'.$index);
     }
 
     private function fallbackValue(ExampleField $field, ScenarioContext $context, string $salt): mixed
@@ -55,6 +123,7 @@ final class DeterministicValueGenerator
             'boolean' => true,
             'integer' => $this->integer($context->seed, $salt, 1, 999),
             'number' => $this->decimal($context->seed, $salt, 1, 999),
+            'object' => $this->objectFallback($field, $context, $salt),
             default => $this->stringFallback($field, $context, $salt),
         };
     }
@@ -67,8 +136,76 @@ final class DeterministicValueGenerator
 
         return match ($field->name) {
             'name' => $this->indexedFullName($context, $salt),
+            'account' => $this->indexedUsername($context, $salt),
+            'list' => $this->pick(['featured-broadcasts', 'top-clips', 'partner-watchlist'], $context->seed, $salt),
+            'path' => $field->location === 'path' ? 'exports/weekly-report.csv' : 'media/uploads/avatar.jpg',
+            'workspace' => Str::slug($this->pick(['North Arena', 'Creator Lab', 'Velocity Hub'], $context->seed, $salt)),
+            'data' => 'saved',
             default => 'example_'.$this->slugPart($field->name).'_'.$this->hashSuffix($context->seed, $salt, 4),
         };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function objectFallback(ExampleField $field, ScenarioContext $context, string $salt): array
+    {
+        if ($field->semanticType === 'json_blob') {
+            return [
+                'region' => 'North America',
+                'priority' => $this->pick(['high', 'medium', 'low'], $context->seed, $salt.':priority'),
+            ];
+        }
+
+        return [
+            'id' => $this->integer($context->seed, $salt.':id', 1, 999),
+            'label' => ucfirst($this->slugPart($field->name)),
+        ];
+    }
+
+    private function titleValue(ScenarioContext $context, string $salt): string
+    {
+        $prefix = $this->pick(['Neon', 'Phantom', 'Velocity', 'Shadow', 'Orbit', 'Crimson'], $context->seed, $salt.':prefix');
+        $suffix = $this->pick(['Protocol', 'Arena', 'Frontier', 'Rush', 'Echo', 'Division'], $context->seed, $salt.':suffix');
+
+        return $prefix.' '.$suffix;
+    }
+
+    private function attributeValue(ScenarioContext $context, string $salt): string
+    {
+        return $this->pick([
+            '@crimsonrush',
+            'English / Spanish',
+            'North America',
+            'Weeknights at 7 PM PT',
+            'Top 8 finisher this season',
+            'https://twitch.tv/crimsonrush',
+        ], $context->seed, $salt);
+    }
+
+    private function jsonBlobValue(ScenarioContext $context, string $salt): string
+    {
+        return json_encode([
+            'region' => 'North America',
+            'priority' => $this->pick(['high', 'medium', 'low'], $context->seed, $salt.':priority'),
+            'focus' => $this->pick(['watch parties', 'competitive shooters', 'creator campaigns'], $context->seed, $salt.':focus'),
+        ], JSON_UNESCAPED_SLASHES) ?: '{}';
+    }
+
+    private function domainValue(ScenarioContext $context, string $salt): string
+    {
+        $prefix = $this->pick(['arena', 'creatorlab', 'velocity', 'watchparty', 'loaded'], $context->seed, $salt);
+
+        return $prefix.'.gg';
+    }
+
+    private function pageSizeValue(string $seed, string $salt): int
+    {
+        $values = [10, 12, 20, 25, 50];
+        $hash = hash('sha256', $seed.'|'.$salt);
+        $index = hexdec(substr($hash, 0, 8)) % count($values);
+
+        return $values[$index];
     }
 
     private function indexedFirstName(ScenarioContext $context, string $salt): string
@@ -209,6 +346,13 @@ final class DeterministicValueGenerator
         $slug = Str::slug($value);
 
         return $slug !== '' ? $slug : 'field';
+    }
+
+    private function normalizedFieldName(ExampleField $field): string
+    {
+        $name = preg_replace('/([a-z0-9])([A-Z])/', '$1_$2', $field->name) ?? $field->name;
+
+        return strtolower(str_replace('-', '_', $name));
     }
 
     private function hashSuffix(string $seed, string $salt, int $length): string

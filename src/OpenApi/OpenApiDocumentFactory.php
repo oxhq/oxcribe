@@ -100,7 +100,7 @@ final class OpenApiDocumentFactory
         $requestFieldIndex = RequestFieldIndex::fromController($operation->controller);
         $override = $this->mergedOperationOverride($operation, $method, $config);
         $authProfile = $operation->authProfile();
-        $spec = $this->operationExampleSpecFactory->make($operation);
+        $spec = $this->operationExampleSpecFactory->make($operation, $resourceIndex);
         $generatedExamples = $this->buildGeneratedExamples($operation, $spec);
         $generatedScenarios = $this->buildGeneratedScenarios($operation, $spec);
         $document = [
@@ -114,7 +114,12 @@ final class OpenApiDocumentFactory
             ],
         ];
 
-        $document['summary'] = $operation->name ?? $this->generatedOperationSummary($operation, $method);
+        $document['summary'] = $this->preferredOperationSummary($operation, $method);
+
+        $tags = $this->generatedOperationTags($operation);
+        if ($tags !== []) {
+            $document['tags'] = $tags;
+        }
 
         $generatedDescription = $this->generatedOperationDescription($operation, $method);
         if ($generatedDescription !== null) {
@@ -143,8 +148,8 @@ final class OpenApiDocumentFactory
         }
 
         $parameters = array_merge(
-            $this->buildPathParameters($operation),
-            $this->buildQueryParameters($operation, $requestFieldIndex),
+            $this->buildPathParameters($operation, $generatedExamples),
+            $this->buildQueryParameters($operation, $requestFieldIndex, $generatedExamples),
         );
         if ($parameters !== []) {
             $document['parameters'] = $parameters;
@@ -395,6 +400,10 @@ final class OpenApiDocumentFactory
         foreach ($this->controllerResponses($operation) as $response) {
             $status = $this->responseStatus($response, $operation);
             if ($status === '') {
+                continue;
+            }
+
+            if (! $this->shouldDocumentResponse($response, $status)) {
                 continue;
             }
 
@@ -687,7 +696,24 @@ final class OpenApiDocumentFactory
             '201' => 'Created',
             '202' => 'Accepted',
             '204' => 'No content',
-            default => $kind === 'no_content' ? 'No content' : 'Successful response',
+            '400' => 'Bad request',
+            '401' => 'Unauthorized',
+            '403' => 'Forbidden',
+            '404' => 'Not found',
+            '409' => 'Conflict',
+            '410' => 'Gone',
+            '422' => 'Unprocessable content',
+            '429' => 'Too many requests',
+            '500' => 'Internal server error',
+            '501' => 'Not implemented',
+            '502' => 'Bad gateway',
+            '503' => 'Service unavailable',
+            '504' => 'Gateway timeout',
+            default => $kind === 'no_content'
+                ? 'No content'
+                : ((int) $status >= 500
+                    ? 'Server error'
+                    : ((int) $status >= 400 ? 'Error response' : 'Successful response')),
         };
     }
 
@@ -719,6 +745,15 @@ final class OpenApiDocumentFactory
         $uri = ltrim($operation->uri, '/');
         /** @var list<string> $prefixes */
         $prefixes = array_values((array) ($config['route_filters']['exclude_uri_prefixes'] ?? []));
+        /** @var list<string> $exactUris */
+        $exactUris = array_values((array) ($config['route_filters']['exclude_uri_exact'] ?? []));
+
+        foreach ($exactUris as $exactUri) {
+            $normalizedUri = trim($exactUri, '/');
+            if ($normalizedUri !== '' && $uri === $normalizedUri) {
+                return true;
+            }
+        }
 
         foreach ($prefixes as $prefix) {
             $normalizedPrefix = trim($prefix, '/');
@@ -744,7 +779,11 @@ final class OpenApiDocumentFactory
     /**
      * @return list<array<string, mixed>>
      */
-    private function buildPathParameters(MergedOperation $operation): array
+    /**
+     * @param  array<string, GeneratedOperationExample>  $generatedExamples
+     * @return list<array<string, mixed>>
+     */
+    private function buildPathParameters(MergedOperation $operation, array $generatedExamples = []): array
     {
         preg_match_all('/\{([^}]+)\}/', $operation->uri, $matches);
         if (($matches[1] ?? []) === []) {
@@ -783,6 +822,7 @@ final class OpenApiDocumentFactory
                 $parameter['x-oxcribe'] = $extension;
             }
 
+            $parameter = $this->attachGeneratedParameterExample($parameter, $generatedExamples, $parameterName, 'path');
             $parameters[] = $parameter;
         }
 
@@ -819,6 +859,16 @@ final class OpenApiDocumentFactory
 
     private function generatedOperationSummary(MergedOperation $operation, string $method): string
     {
+        $systemSummary = $this->systemOperationSummary($operation, $method);
+        if ($systemSummary !== null) {
+            return $systemSummary;
+        }
+
+        $authSummary = $this->authOperationSummary($operation, $method);
+        if ($authSummary !== null) {
+            return $authSummary;
+        }
+
         $resource = $this->humanizedResourceName($operation->uri);
 
         return match (strtoupper($method)) {
@@ -828,6 +878,16 @@ final class OpenApiDocumentFactory
             'DELETE' => sprintf('Delete %s', $resource),
             default => sprintf('%s %s', strtoupper($method), $resource),
         };
+    }
+
+    private function preferredOperationSummary(MergedOperation $operation, string $method): string
+    {
+        $name = trim((string) ($operation->name ?? ''));
+        if ($name === '' || $this->looksMachineGeneratedSummary($name)) {
+            return $this->generatedOperationSummary($operation, $method);
+        }
+
+        return $name;
     }
 
     private function generatedOperationDescription(MergedOperation $operation, string $method): ?string
@@ -849,6 +909,46 @@ final class OpenApiDocumentFactory
         }
 
         return implode(' ', array_filter($segments));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function generatedOperationTags(MergedOperation $operation): array
+    {
+        $segments = array_values(array_filter(
+            explode('/', trim($operation->uri, '/')),
+            static fn (string $segment): bool => $segment !== '' && ! str_starts_with($segment, '{'),
+        ));
+
+        if ($segments === []) {
+            return ['System'];
+        }
+
+        $first = strtolower($segments[0]);
+        if ($first === 'api' || preg_match('/^v[0-9]+$/', $first) === 1) {
+            array_shift($segments);
+        }
+
+        if ($segments === []) {
+            return ['System'];
+        }
+
+        $tag = strtolower($segments[0]);
+
+        if (in_array($tag, ['login', 'logout', 'register', 'authenticate', 'callback'], true)) {
+            return ['Auth'];
+        }
+
+        if (in_array($tag, ['docs', 'documentation'], true)) {
+            return ['Docs'];
+        }
+
+        if (in_array($tag, ['up', 'health', 'status', 'heartbeat', 'ping'], true)) {
+            return ['System'];
+        }
+
+        return [$this->humanizeToken($segments[0])];
     }
 
     private function generatedPathParameterDescription(string $parameterName, MergedOperation $operation): string
@@ -937,6 +1037,49 @@ final class OpenApiDocumentFactory
         return $this->humanizeToken($this->singularizeToken((string) ($resource ?: 'resource')));
     }
 
+    private function authOperationSummary(MergedOperation $operation, string $method): ?string
+    {
+        $segments = array_values(array_filter(explode('/', trim($operation->uri, '/')), static fn (string $segment): bool => $segment !== ''));
+        $last = strtolower((string) end($segments));
+
+        return match (true) {
+            strtoupper($method) === 'POST' && in_array($last, ['login', 'signin', 'sign-in', 'authenticate'], true) => 'Login',
+            strtoupper($method) === 'POST' && in_array($last, ['register', 'signup', 'sign-up'], true) => 'Register',
+            in_array(strtoupper($method), ['POST', 'DELETE'], true) && in_array($last, ['logout', 'signout', 'sign-out'], true) => 'Logout',
+            strtoupper($method) === 'GET' && $last === 'callback' => 'Authentication callback',
+            default => null,
+        };
+    }
+
+    private function systemOperationSummary(MergedOperation $operation, string $method): ?string
+    {
+        $method = strtoupper($method);
+        $segments = array_values(array_filter(explode('/', trim($operation->uri, '/')), static fn (string $segment): bool => $segment !== ''));
+
+        if ($segments === []) {
+            return $method === 'GET' ? 'Root endpoint' : null;
+        }
+
+        $last = strtolower((string) end($segments));
+        $first = strtolower($segments[0]);
+
+        if ($method === 'GET' && in_array($last, ['up', 'health', 'status', 'heartbeat', 'ping'], true)) {
+            return 'Health check';
+        }
+
+        if ($first === 'docs' && $method === 'GET') {
+            return str_ends_with($last, '.json') ? 'OpenAPI document' : 'Documentation';
+        }
+
+        return null;
+    }
+
+    private function looksMachineGeneratedSummary(string $value): bool
+    {
+        return ! str_contains($value, ' ')
+            && preg_match('/^[a-z0-9._:-]+$/i', $value) === 1;
+    }
+
     private function pluralizeLabel(string $value): string
     {
         return str_ends_with(strtolower($value), 's') ? $value : $value.'s';
@@ -980,7 +1123,11 @@ final class OpenApiDocumentFactory
     /**
      * @return list<array<string, mixed>>
      */
-    private function buildQueryParameters(MergedOperation $operation, RequestFieldIndex $requestFieldIndex): array
+    /**
+     * @param  array<string, GeneratedOperationExample>  $generatedExamples
+     * @return list<array<string, mixed>>
+     */
+    private function buildQueryParameters(MergedOperation $operation, RequestFieldIndex $requestFieldIndex, array $generatedExamples = []): array
     {
         $request = $operation->controller['request'] ?? null;
         if (! is_array($request)) {
@@ -1021,10 +1168,95 @@ final class OpenApiDocumentFactory
                 $parameter['x-oxcribe'] = $extension;
             }
 
+            $parameter = $this->attachGeneratedParameterExample($parameter, $generatedExamples, (string) $name, 'query');
             $parameters[] = $parameter;
         }
 
         return $parameters;
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameter
+     * @param  array<string, GeneratedOperationExample>  $generatedExamples
+     * @return array<string, mixed>
+     */
+    private function attachGeneratedParameterExample(array $parameter, array $generatedExamples, string $name, string $location): array
+    {
+        $value = null;
+
+        foreach (['happy_path', 'realistic_full', 'minimal_valid'] as $mode) {
+            $example = $generatedExamples[$mode] ?? null;
+            if (! $example instanceof GeneratedOperationExample) {
+                continue;
+            }
+
+            $value = match ($location) {
+                'path' => $example->request->pathParams[$name] ?? null,
+                'query' => $example->request->queryParams[$name] ?? null,
+                default => null,
+            };
+
+            if ($value !== null) {
+                break;
+            }
+        }
+
+        if ($value === null) {
+            $value = $this->fallbackParameterExample($parameter);
+        }
+
+        if ($value === null) {
+            return $parameter;
+        }
+
+        $parameter['example'] = $value;
+
+        return $parameter;
+    }
+
+    private function fallbackParameterExample(array $parameter): mixed
+    {
+        $name = strtolower((string) ($parameter['name'] ?? ''));
+        $schema = is_array($parameter['schema'] ?? null) ? $parameter['schema'] : [];
+        $type = $this->primarySchemaType($schema);
+
+        return match (true) {
+            in_array($name, ['search', 'query', 'q'], true) => 'valorant',
+            in_array($name, ['limit', 'per_page', 'page_size'], true) => 20,
+            $name === 'page' => 1,
+            in_array($name, ['sort'], true) => 'created_at',
+            in_array($name, ['order', 'direction'], true) => 'desc',
+            $name === 'list' => 'featured-broadcasts',
+            $name === 'account' => 'ana_lopez',
+            $name === 'path' => 'exports/weekly-report.csv',
+            $type === 'boolean' => true,
+            $type === 'integer' || $type === 'number' => 123,
+            $type === 'string' => 'sample',
+            default => null,
+        };
+    }
+
+    private function primarySchemaType(array $schema): ?string
+    {
+        $type = $schema['type'] ?? null;
+
+        if (is_string($type) && $type !== '') {
+            return $type;
+        }
+
+        if (! is_array($type)) {
+            return null;
+        }
+
+        foreach ($type as $candidate) {
+            if (! is_string($candidate) || $candidate === 'null' || $candidate === '') {
+                continue;
+            }
+
+            return $candidate;
+        }
+
+        return null;
     }
 
     /**
@@ -1034,6 +1266,11 @@ final class OpenApiDocumentFactory
     {
         $request = $operation->controller['request'] ?? null;
         if (! is_array($request)) {
+            return null;
+        }
+
+        $bodyLocation = EffectiveRequestFieldLocation::body($operation, $request, $requestFieldIndex);
+        if ($bodyLocation === null) {
             return null;
         }
 
@@ -1051,7 +1288,7 @@ final class OpenApiDocumentFactory
 
         foreach ($contentTypes as $contentType) {
             $content[$contentType] = [
-                'schema' => $this->buildRequestSchema($bodyShape, $fileShape, $contentType, $requestFieldIndex),
+                'schema' => $this->buildRequestSchema($bodyShape, $fileShape, $contentType, $requestFieldIndex, $bodyLocation),
             ];
         }
 
@@ -1066,16 +1303,16 @@ final class OpenApiDocumentFactory
      * @param  array<string, mixed>  $fileShape
      * @return array<string, mixed>
      */
-    private function buildRequestSchema(array $bodyShape, array $fileShape, string $contentType, RequestFieldIndex $requestFieldIndex): array
+    private function buildRequestSchema(array $bodyShape, array $fileShape, string $contentType, RequestFieldIndex $requestFieldIndex, string $bodyLocation = 'body'): array
     {
         $properties = [];
         $required = [];
 
-        foreach ($this->orderedNames(array_keys($bodyShape), $this->overlayChildNames($requestFieldIndex, 'body', '')) as $name) {
+        foreach ($this->orderedNames(array_keys($bodyShape), $this->overlayChildNames($requestFieldIndex, $bodyLocation, '')) as $name) {
             $path = (string) $name;
             $shape = is_array($bodyShape[$name] ?? null) ? $bodyShape[$name] : [];
-            $properties[$path] = $this->buildOverlaySchema($shape, $requestFieldIndex, 'body', $path, null);
-            if (($requestFieldIndex->get('body', $path)['required'] ?? false) === true) {
+            $properties[$path] = $this->buildOverlaySchema($shape, $requestFieldIndex, $bodyLocation, $path, null);
+            if (($requestFieldIndex->get($bodyLocation, $path)['required'] ?? false) === true) {
                 $required[] = $path;
             }
         }
@@ -1106,6 +1343,38 @@ final class OpenApiDocumentFactory
         }
 
         return $this->hydrateSchemaDescriptions($schema);
+    }
+
+    /**
+     * @param  array<string, mixed>  $response
+     */
+    private function shouldDocumentResponse(array $response, string $status): bool
+    {
+        if ((int) $status < 500) {
+            return true;
+        }
+
+        if (($response['explicit'] ?? false) === true) {
+            return true;
+        }
+
+        if (is_string($response['source'] ?? null) && trim((string) $response['source']) !== '') {
+            return true;
+        }
+
+        if (is_string($response['via'] ?? null) && trim((string) $response['via']) !== '') {
+            return true;
+        }
+
+        if (is_array($response['bodySchema'] ?? null) && $response['bodySchema'] !== []) {
+            return true;
+        }
+
+        if (is_array($response['headers'] ?? null) && $response['headers'] !== []) {
+            return true;
+        }
+
+        return is_string($response['contentType'] ?? null) && trim((string) $response['contentType']) !== '';
     }
 
     /**

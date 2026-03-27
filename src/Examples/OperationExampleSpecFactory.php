@@ -11,6 +11,7 @@ use Oxhq\Oxcribe\Examples\Data\ExampleField;
 use Oxhq\Oxcribe\Examples\Data\OperationExampleSpec;
 use Oxhq\Oxcribe\OpenApi\Support\EffectiveRequestFieldLocation;
 use Oxhq\Oxcribe\OpenApi\Support\RequestFieldIndex;
+use Oxhq\Oxcribe\OpenApi\Support\ResourceSchemaIndex;
 
 final readonly class OperationExampleSpecFactory
 {
@@ -19,7 +20,7 @@ final readonly class OperationExampleSpecFactory
         private FieldClassifier $fieldClassifier = new FieldClassifier,
     ) {}
 
-    public function make(MergedOperation $operation): OperationExampleSpec
+    public function make(MergedOperation $operation, ?ResourceSchemaIndex $resourceIndex = null): OperationExampleSpec
     {
         $endpoint = new EndpointExampleContext(
             method: strtoupper($operation->methods[0] ?? 'GET'),
@@ -37,12 +38,12 @@ final readonly class OperationExampleSpecFactory
         return new OperationExampleSpec(
             endpoint: $endpoint,
             pathParams: $this->buildPathParams($operation, $endpoint),
-            queryParams: $this->buildRequestFields($requestFieldIndex, $queryLocation, $endpoint),
+            queryParams: $this->buildRequestFieldsForLocation($requestFieldIndex, $request, $queryLocation, $endpoint),
             requestFields: array_merge(
-                $bodyLocation !== null ? $this->buildRequestFields($requestFieldIndex, $bodyLocation, $endpoint) : [],
-                $this->buildRequestFields($requestFieldIndex, 'files', $endpoint),
+                $bodyLocation !== null ? $this->buildRequestFieldsForLocation($requestFieldIndex, $request, $bodyLocation, $endpoint) : [],
+                $this->buildRequestFieldsForLocation($requestFieldIndex, $request, 'files', $endpoint),
             ),
-            responseFields: $this->buildResponseFields($operation, $endpoint),
+            responseFields: $this->buildResponseFields($operation, $endpoint, $resourceIndex),
             responseStatuses: $this->responseStatuses($operation),
         );
     }
@@ -114,11 +115,59 @@ final readonly class OperationExampleSpecFactory
     }
 
     /**
+     * @param  array<string, mixed>  $request
      * @return list<ExampleField>
      */
-    private function buildResponseFields(MergedOperation $operation, EndpointExampleContext $endpoint): array
+    private function buildRequestFieldsForLocation(RequestFieldIndex $index, array $request, string $location, EndpointExampleContext $endpoint): array
     {
-        $schema = $this->primaryResponseSchema($operation);
+        $fields = $this->buildRequestFields($index, $location, $endpoint);
+        $legacyShape = $this->legacyRequestShape($request, $location);
+        if ($legacyShape === []) {
+            return $fields;
+        }
+
+        $existingRelativePaths = array_map(
+            fn (ExampleField $field): string => $this->relativePath($field->path, $location),
+            $fields,
+        );
+
+        $fallbackMetadata = $this->flattenLegacyShape($legacyShape);
+        if ($fallbackMetadata === []) {
+            return $fields;
+        }
+
+        $knownRelativePaths = array_values(array_unique(array_merge(
+            array_filter($existingRelativePaths, static fn (string $path): bool => $path !== ''),
+            array_keys($fallbackMetadata),
+        )));
+        sort($knownRelativePaths);
+        $knownPaths = array_map(static fn (string $path): string => $location.'.'.$path, $knownRelativePaths);
+
+        foreach ($fallbackMetadata as $path => $metadata) {
+            if ($path === '' || in_array($path, $existingRelativePaths, true)) {
+                continue;
+            }
+
+            $fields[] = $this->fieldClassifier->classify(
+                path: $path,
+                location: $location,
+                metadata: $metadata,
+                endpoint: $endpoint,
+                knownPaths: $knownPaths,
+            );
+        }
+
+        usort($fields, static fn (ExampleField $left, ExampleField $right): int => strcmp($left->path, $right->path));
+
+        return $fields;
+    }
+
+    /**
+     * @return list<ExampleField>
+     */
+    private function buildResponseFields(MergedOperation $operation, EndpointExampleContext $endpoint, ?ResourceSchemaIndex $resourceIndex = null): array
+    {
+        $schema = $this->primaryResponseSchema($operation, $resourceIndex);
         if ($schema === null) {
             return [];
         }
@@ -220,7 +269,7 @@ final readonly class OperationExampleSpecFactory
     /**
      * @return array<string, mixed>|null
      */
-    private function primaryResponseSchema(MergedOperation $operation): ?array
+    private function primaryResponseSchema(MergedOperation $operation, ?ResourceSchemaIndex $resourceIndex = null): ?array
     {
         foreach ((array) ($operation->controller['responses'] ?? []) as $response) {
             if (! is_array($response)) {
@@ -233,12 +282,32 @@ final readonly class OperationExampleSpecFactory
             }
 
             if (is_array($response['bodySchema'] ?? null)) {
-                return (array) $response['bodySchema'];
+                $schema = (array) $response['bodySchema'];
+                if ($resourceIndex !== null) {
+                    $expanded = $resourceIndex->expandedSchemaForNode($schema);
+                    if ($expanded !== []) {
+                        return $expanded;
+                    }
+                }
+
+                return $schema;
             }
 
             if (is_array($response['inertia']['propsSchema'] ?? null)) {
-                return (array) $response['inertia']['propsSchema'];
+                $schema = (array) $response['inertia']['propsSchema'];
+                if ($resourceIndex !== null) {
+                    $expanded = $resourceIndex->expandedSchemaForNode($schema);
+                    if ($expanded !== []) {
+                        return $expanded;
+                    }
+                }
+
+                return $schema;
             }
+        }
+
+        if ($resourceIndex !== null) {
+            return $resourceIndex->expandedResponseSchemaFor($this->primaryResourceUse($operation));
         }
 
         return null;
@@ -317,5 +386,117 @@ final readonly class OperationExampleSpecFactory
         $normalized = preg_replace('/^\^|\$$/', '', $normalized) ?? $normalized;
 
         return in_array($normalized, ['[0-9]+', '\d+', '[1-9][0-9]*'], true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $request
+     * @return array<string, mixed>
+     */
+    private function legacyRequestShape(array $request, string $location): array
+    {
+        return match ($location) {
+            'query' => is_array($request['query'] ?? null) ? $request['query'] : [],
+            'body' => is_array($request['body'] ?? null) ? $request['body'] : [],
+            'files' => is_array($request['files'] ?? null) ? $request['files'] : [],
+            default => [],
+        };
+    }
+
+    private function relativePath(string $path, string $location): string
+    {
+        $prefix = $location.'.';
+
+        return str_starts_with($path, $prefix) ? substr($path, strlen($prefix)) : $path;
+    }
+
+    /**
+     * @param  array<string, mixed>  $shape
+     * @return array<string, array<string, mixed>>
+     */
+    private function flattenLegacyShape(array $shape): array
+    {
+        $fields = [];
+
+        foreach ($shape as $name => $child) {
+            if (! is_string($name) || $name === '') {
+                continue;
+            }
+
+            $this->collectLegacyShapeFields((array) $child, $name, false, $fields);
+        }
+
+        ksort($fields);
+
+        return $fields;
+    }
+
+    /**
+     * @param  array<string, mixed>  $node
+     * @param  array<string, array<string, mixed>>  $fields
+     */
+    private function collectLegacyShapeFields(array $node, string $path, bool $required, array &$fields): void
+    {
+        $properties = is_array($node['properties'] ?? null) ? (array) $node['properties'] : [];
+        $requiredKeys = array_values(array_filter(
+            array_map('strval', (array) ($node['required'] ?? [])),
+            static fn (string $value): bool => $value !== '',
+        ));
+
+        if ($properties !== []) {
+            foreach ($properties as $name => $child) {
+                if (! is_array($child) || ! is_string($name) || $name === '') {
+                    continue;
+                }
+
+                $this->collectLegacyShapeFields(
+                    $child,
+                    $path.'.'.$name,
+                    in_array($name, $requiredKeys, true),
+                    $fields,
+                );
+            }
+
+            return;
+        }
+
+        if (is_array($node['items'] ?? null)) {
+            $this->collectLegacyShapeFields((array) $node['items'], $path.'[]', true, $fields);
+
+            return;
+        }
+
+        $type = $this->normalizedSchemaType($node);
+        $format = is_string($node['format'] ?? null) ? (string) $node['format'] : null;
+        $enum = is_array($node['enum'] ?? null) ? array_values(array_filter(array_map('strval', $node['enum']))) : [];
+        $metadata = array_filter([
+            'type' => $type,
+            'scalarType' => $type === 'array' ? null : $type,
+            'format' => $format,
+            'required' => $required,
+            'nullable' => $this->schemaNullable($node),
+            'allowedValues' => $enum,
+            'collection' => $type === 'array' || str_ends_with($path, '[]'),
+            'isArray' => $type === 'array' || str_ends_with($path, '[]'),
+            'itemType' => $this->responseItemType($node),
+            'source' => 'request.shape',
+            'via' => 'legacy_shape',
+        ], static fn (mixed $value): bool => $value !== null && $value !== []);
+
+        $fields[$path] = $metadata;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function primaryResourceUse(MergedOperation $operation): ?array
+    {
+        $resources = (array) ($operation->controller['resources'] ?? []);
+        if ($resources === []) {
+            return null;
+        }
+
+        $primary = $resources[0] ?? null;
+
+        return is_array($primary) ? $primary : null;
     }
 }

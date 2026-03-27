@@ -44,15 +44,6 @@ final class EffectiveRequestFieldLocation
             return false;
         }
 
-        $contentTypes = array_values(array_filter(
-            (array) ($request['contentTypes'] ?? []),
-            static fn (mixed $value): bool => is_string($value) && $value !== '',
-        ));
-
-        if ($contentTypes !== []) {
-            return false;
-        }
-
         return $index->allForLocation('body') !== [];
     }
 }

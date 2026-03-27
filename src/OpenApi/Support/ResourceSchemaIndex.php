@@ -109,6 +109,58 @@ final class ResourceSchemaIndex
     }
 
     /**
+     * Expands resource refs inline so downstream generators can materialize
+     * concrete example payloads instead of opaque string placeholders.
+     *
+     * @param  array<string, mixed>  $node
+     * @return array<string, mixed>
+     */
+    public function expandedSchemaForNode(array $node): array
+    {
+        return $this->expandNode($node);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $resourceUse
+     * @return array<string, mixed>|null
+     */
+    public function expandedResponseSchemaFor(?array $resourceUse): ?array
+    {
+        if (! is_array($resourceUse)) {
+            return null;
+        }
+
+        $fqcn = trim((string) ($resourceUse['fqcn'] ?? ''));
+        if ($fqcn === '') {
+            return null;
+        }
+
+        $schema = $this->expandRef($fqcn);
+        if ($schema === null) {
+            return null;
+        }
+
+        if (($resourceUse['collection'] ?? false) !== true) {
+            return $schema;
+        }
+
+        if (str_ends_with($this->shortTypeName($fqcn), 'Collection')) {
+            return $schema;
+        }
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'data' => [
+                    'type' => 'array',
+                    'items' => $schema,
+                ],
+            ],
+            'required' => ['data'],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     private function referenceSchema(string $fqcn): ?array
@@ -202,6 +254,104 @@ final class ResourceSchemaIndex
                     ],
                 ];
             }
+        }
+
+        return $schema;
+    }
+
+    /**
+     * @param  array<string, mixed>  $node
+     * @param  list<string>  $resolving
+     * @return array<string, mixed>
+     */
+    private function expandNode(array $node, array $resolving = []): array
+    {
+        $ref = trim((string) ($node['ref'] ?? ''));
+        if ($ref !== '') {
+            $expanded = $this->expandRef($ref, $resolving);
+            if ($expanded === null) {
+                return [];
+            }
+
+            if (($node['nullable'] ?? false) === true) {
+                $expanded['nullable'] = true;
+            }
+
+            $expanded['ref'] = $ref;
+
+            return $expanded;
+        }
+
+        $schema = [];
+        $type = trim((string) ($node['type'] ?? ''));
+        if ($type !== '') {
+            $schema['type'] = $type;
+        }
+
+        $format = trim((string) ($node['format'] ?? ''));
+        if ($format !== '') {
+            $schema['format'] = $format;
+        }
+
+        $properties = [];
+        foreach ((array) ($node['properties'] ?? []) as $name => $propertyNode) {
+            if (! is_array($propertyNode)) {
+                continue;
+            }
+
+            $expanded = $this->expandNode($propertyNode, $resolving);
+            if ($expanded === []) {
+                continue;
+            }
+
+            $properties[(string) $name] = $expanded;
+        }
+        if ($properties !== []) {
+            ksort($properties);
+            $schema['properties'] = $properties;
+        }
+
+        $required = array_values(array_filter(
+            (array) ($node['required'] ?? []),
+            static fn (mixed $value): bool => is_string($value) && $value !== '',
+        ));
+        if ($required !== []) {
+            sort($required);
+            $schema['required'] = $required;
+        }
+
+        if (is_array($node['items'] ?? null)) {
+            $items = $this->expandNode((array) $node['items'], $resolving);
+            if ($items !== []) {
+                $schema['items'] = $items;
+            }
+        }
+
+        if (($node['nullable'] ?? false) === true) {
+            $schema['nullable'] = true;
+        }
+
+        return $schema;
+    }
+
+    /**
+     * @param  list<string>  $resolving
+     * @return array<string, mixed>|null
+     */
+    private function expandRef(string $fqcn, array $resolving = []): ?array
+    {
+        if (in_array($fqcn, $resolving, true)) {
+            return ['type' => 'object'];
+        }
+
+        $resource = $this->byFqcn[$fqcn] ?? null;
+        if (! is_array($resource)) {
+            return null;
+        }
+
+        $schema = $this->expandNode((array) ($resource['schema'] ?? []), [...$resolving, $fqcn]);
+        if ($schema === []) {
+            return null;
         }
 
         return $schema;

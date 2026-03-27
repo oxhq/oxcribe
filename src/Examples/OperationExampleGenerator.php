@@ -153,6 +153,13 @@ final readonly class OperationExampleGenerator
             return true;
         }
 
+        if ($field->location === 'query') {
+            return match ($mode) {
+                ExampleMode::MinimalValid => false,
+                default => true,
+            };
+        }
+
         return match ($mode) {
             ExampleMode::MinimalValid => false,
             ExampleMode::HappyPath => $field->hints->confidence >= 0.8 || $field->collection || $field->allowedValues !== [],
@@ -221,7 +228,7 @@ final readonly class OperationExampleGenerator
             $cursor[$key] ??= [];
             for ($i = 0; $i < $arrayCount; $i++) {
                 if ($segments === []) {
-                    $cursor[$key][$i] = $this->valueGenerator->generate($field, $context, $i);
+                    $cursor[$key][$i] = $this->valueGenerator->generateCollectionItem($field, $context, $i);
 
                     continue;
                 }
@@ -237,6 +244,12 @@ final readonly class OperationExampleGenerator
         }
 
         if ($segments === []) {
+            if ($field->collection || $field->baseType === 'array') {
+                $cursor[$key] = $this->collectionTerminalValue($field, $context, $arrayCount);
+
+                return;
+            }
+
             $cursor[$key] = $this->valueGenerator->generate($field, $context, $index);
 
             return;
@@ -252,6 +265,19 @@ final readonly class OperationExampleGenerator
     private function arrayCount(ExampleMode $mode): int
     {
         return $mode === ExampleMode::MinimalValid ? 1 : 2;
+    }
+
+    /**
+     * @return list<mixed>
+     */
+    private function collectionTerminalValue(ExampleField $field, ScenarioContext $context, int $arrayCount): array
+    {
+        $values = [];
+        for ($i = 0; $i < $arrayCount; $i++) {
+            $values[] = $this->valueGenerator->generateCollectionItem($field, $context, $i);
+        }
+
+        return $values;
     }
 
     private function normalizePathNotation(string $path): string
