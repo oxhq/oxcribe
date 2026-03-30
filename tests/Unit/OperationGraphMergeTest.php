@@ -1037,11 +1037,12 @@ it('builds an openapi document from the merged graph', function () {
 
     $graph = app(OperationGraphMerger::class)->merge($runtime, $response);
     $document = app(OpenApiDocumentFactory::class)->make($graph, config('oxcribe.openapi'));
+    $expectedTitle = (string) config('oxcribe.openapi.info.title');
 
     expect($document)->toMatchArray([
         'openapi' => '3.1.0',
         'info' => [
-            'title' => 'Laravel',
+            'title' => $expectedTitle,
             'version' => '0.1.0',
         ],
     ])

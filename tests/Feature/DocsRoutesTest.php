@@ -14,6 +14,8 @@ use Oxhq\Oxcribe\Data\RuntimeSnapshot;
 use Oxhq\Oxcribe\Support\ManifestFactory;
 
 it('serves the local docs page, openapi document, and docs payload from the package routes', function () {
+    $expectedTitle = (string) config('oxcribe.openapi.info.title');
+
     config()->set('oxcribe.docs.enabled', true);
     config()->set('oxcribe.docs.route', 'oxcribe/docs');
     config()->set('oxcribe.docs.openapi_route', 'oxcribe/openapi.json');
@@ -168,7 +170,7 @@ it('serves the local docs page, openapi document, and docs payload from the pack
     $this->get('/oxcribe/docs/payload.json')
         ->assertOk()
         ->assertJsonPath('contractVersion', 'oxcribe.docs.v1')
-        ->assertJsonPath('info.title', 'Laravel')
+        ->assertJsonPath('info.title', $expectedTitle)
         ->assertJsonPath('operations.0.path', '/users')
         ->assertJsonPath('operations.0.method', 'GET')
         ->assertJsonPath('meta.operationCount', 1)
