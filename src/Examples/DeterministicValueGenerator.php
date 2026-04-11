@@ -28,25 +28,25 @@ final class DeterministicValueGenerator
             'title' => $this->titleLikeValue($field, $context, $endpoint, $salt, $index),
             'genre' => $this->pick(['Action RPG', 'Tactical Shooter', 'MOBA', 'Battle Royale', 'Kart Racer', 'Indie Platformer'], $context->seed, $salt),
             'domain' => $this->domainValue($field, $context, $endpoint, $salt, $index),
-            'icon_name' => $this->pick(['twitch', 'youtube', 'discord', 'calendar', 'location', 'globe'], $context->seed, $salt),
-            'label' => $this->pick(['Platform', 'Language', 'Region', 'Schedule', 'Community'], $context->seed, $salt),
-            'kind' => $this->pick(['badge', 'profile', 'social', 'availability', 'highlight'], $context->seed, $salt),
-            'attribute_value' => $this->attributeValue($context, $salt),
+            'icon_name' => $this->descriptorProfile($field, $context, $endpoint, $salt)['icon'],
+            'label' => $this->descriptorProfile($field, $context, $endpoint, $salt)['label'],
+            'kind' => $this->descriptorProfile($field, $context, $endpoint, $salt)['kind'],
+            'attribute_value' => $this->descriptorProfile($field, $context, $endpoint, $salt)['value'],
             'color' => $this->pick(['#FF6B6B', '#4ECDC4', '#F7B801', '#6C5CE7', '#00B894', '#0984E3'], $context->seed, $salt),
-            'search_term' => $this->pick(['league', 'creator', 'valorant', 'fifa', 'streamer', 'tournament'], $context->seed, $salt),
+            'search_term' => $this->searchTermValue($field, $context, $endpoint, $salt),
             'page_size' => $this->pageSizeValue($context->seed, $salt),
             'platform' => $this->pick(['Twitch', 'YouTube', 'TikTok', 'Kick', 'Discord'], $context->seed, $salt),
             'language' => $this->pick(['English', 'Spanish', 'Portuguese', 'French'], $context->seed, $salt),
             'creator_role' => $this->pick(['Streamer', 'Caster', 'Analyst', 'Host', 'Coach'], $context->seed, $salt),
             'gender' => $this->pick(['Female', 'Male', 'Non-binary'], $context->seed, $salt),
-            'tagline' => $this->pick(['Competitive energy with community-first streams.', 'Late-night ranked sessions and watch parties.', 'Creator-led coverage for esports and games.'], $context->seed, $salt),
+            'tagline' => $this->taglineValue($field, $context, $endpoint, $salt),
             'highlight' => $this->pick(['Top 8 finish at the last major.', 'Daily ranked grind with community co-streams.', 'Featured on this week\'s tournament recap.'], $context->seed, $salt),
             'timeslot' => $this->pick(['Weeknights', 'Weekends', 'Afternoons', 'Late nights'], $context->seed, $salt),
             'message' => $this->pick(['Operation completed successfully.', 'Request accepted and queued.', 'Resource updated successfully.'], $context->seed, $salt),
             'error_message' => $this->pick(['Something went wrong while processing the request.', 'Unable to complete the action right now.', 'The server could not process this request.'], $context->seed, $salt),
             'status' => $this->pick(['active', 'live', 'draft', 'scheduled'], $context->seed, $salt),
-            'note' => $this->pick(['Follow up after the next stream recap.', 'Prioritize creators with strong watch-party engagement.', 'Keep this list focused on weekly collaboration targets.'], $context->seed, $salt),
-            'request_payload' => $this->pick(['sync_recent_creators', 'refresh_live_content_tables', 'hydrate_workspace_catalog'], $context->seed, $salt),
+            'note' => $this->noteValue($field, $context, $endpoint, $salt),
+            'request_payload' => $this->requestPayloadValue($field, $context, $endpoint, $salt),
             'json_blob' => $this->jsonBlobValue($context, $salt),
             'username' => $index === null ? ($context->person?->username ?? $this->indexedUsername($context, $salt)) : $this->indexedUsername($context, $salt),
             'phone' => $index === null ? ($context->person?->phone ?? $this->indexedPhone($context, $salt)) : $this->indexedPhone($context, $salt),
@@ -174,8 +174,8 @@ final class DeterministicValueGenerator
 
     private function titleValue(ScenarioContext $context, string $salt): string
     {
-        $prefix = $this->pick(['Neon', 'Phantom', 'Velocity', 'Shadow', 'Orbit', 'Crimson'], $context->seed, $salt.':prefix');
-        $suffix = $this->pick(['Protocol', 'Arena', 'Frontier', 'Rush', 'Echo', 'Division'], $context->seed, $salt.':suffix');
+        $prefix = $this->pick($this->gameTitlePrefixes(), $context->seed, $salt.':prefix');
+        $suffix = $this->pick($this->gameTitleSuffixes(), $context->seed, $salt.':suffix');
 
         return $prefix.' '.$suffix;
     }
@@ -187,18 +187,6 @@ final class DeterministicValueGenerator
         return in_array($resource, ['game', 'content', 'project'], true)
             ? $this->entityLabel($field, $context, $endpoint, $salt, $index, fallbackToProject: true)
             : $this->titleValue($context, $salt);
-    }
-
-    private function attributeValue(ScenarioContext $context, string $salt): string
-    {
-        return $this->pick([
-            '@crimsonrush',
-            'English / Spanish',
-            'North America',
-            'Weeknights at 7 PM PT',
-            'Top 8 finisher this season',
-            'https://twitch.tv/crimsonrush',
-        ], $context->seed, $salt);
     }
 
     private function jsonBlobValue(ScenarioContext $context, string $salt): string
@@ -289,7 +277,7 @@ final class DeterministicValueGenerator
             'workspace' => $this->workspaceNameValue($context, 'resource:workspace:'.$salt),
             'project' => $this->projectNameValue($context, 'resource:project:'.$salt),
             'collection' => $this->collectionNameValue($context, 'resource:collection:'.$salt),
-            'game', 'content' => $this->titleValue($context, 'resource:content:'.$salt),
+            'game', 'content' => $this->gameTitlePrefixValue($context, $endpoint, $salt),
             default => $this->pick(['league', 'creator', 'valorant', 'fifa', 'streamer', 'tournament'], $context->seed, $salt),
         };
 
@@ -297,6 +285,21 @@ final class DeterministicValueGenerator
         $prefix = trim((string) ($parts[0] ?? ''));
 
         return $prefix !== '' ? $prefix : strtolower($this->slugPart($label));
+    }
+
+    private function searchTermValue(ExampleField $field, ScenarioContext $context, ?EndpointExampleContext $endpoint, string $salt): string
+    {
+        $resource = $this->resourceContextResolver->resolve($field->path, $endpoint?->operationKind ?? '', $endpoint?->path ?? '');
+
+        return match ($resource) {
+            'organization' => Str::lower($this->organizationNameValue($context, 'resource:organization:'.$salt)),
+            'workspace' => Str::lower($this->workspaceNameValue($context, 'resource:workspace:'.$salt)),
+            'project' => Str::lower($this->projectNameValue($context, 'resource:project:'.$salt)),
+            'collection' => Str::lower($this->collectionNameValue($context, 'resource:collection:'.$salt)),
+            'game', 'content' => Str::lower($this->gameTitlePrefixValue($context, $endpoint, $salt)),
+            'person' => $this->pick(['creator', 'streamer', 'caster', 'host', 'analyst'], $context->seed, $salt),
+            default => $this->pick(['league', 'creator', 'valorant', 'fifa', 'streamer', 'tournament'], $context->seed, $salt),
+        };
     }
 
     private function entityLabel(
@@ -318,7 +321,7 @@ final class DeterministicValueGenerator
             'workspace' => $this->workspaceNameValue($context, $scopeSalt),
             'project' => $this->projectNameValue($context, $scopeSalt),
             'collection' => $this->collectionNameValue($context, $scopeSalt),
-            'game', 'content' => $this->titleValue($context, $scopeSalt),
+            'game', 'content' => $this->gameTitleValue($context, $endpoint, $scopeSalt, $index),
             'person' => $index === null ? ($context->person?->fullName ?? $this->indexedFullName($context, $scopeSalt)) : $this->indexedFullName($context, $scopeSalt),
             default => match (true) {
                 $fallbackToCompany => $this->organizationNameValue($context, $scopeSalt),
@@ -372,6 +375,148 @@ final class DeterministicValueGenerator
         $suffix = $this->pick(['Watchlist', 'Roster', 'Folder', 'Collection', 'Directory', 'Board'], $context->seed, $salt.':suffix');
 
         return $prefix.' '.$suffix;
+    }
+
+    private function gameTitlePrefixValue(ScenarioContext $context, ?EndpointExampleContext $endpoint, string $salt): string
+    {
+        $seed = $endpoint === null
+            ? $salt
+            : 'game-title-prefix|'.$endpoint->path.'|'.$endpoint->operationKind;
+
+        return $this->pick($this->gameTitlePrefixes(), $context->seed, $seed);
+    }
+
+    private function gameTitleValue(ScenarioContext $context, ?EndpointExampleContext $endpoint, string $salt, ?int $index = null): string
+    {
+        $prefix = $this->gameTitlePrefixValue($context, $endpoint, $salt);
+        $suffixSalt = $salt.':suffix'.($index !== null ? '#'.$index : '');
+        $suffix = $this->pick($this->gameTitleSuffixes(), $context->seed, $suffixSalt);
+
+        return $prefix.' '.$suffix;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function gameTitlePrefixes(): array
+    {
+        return ['Neon', 'Phantom', 'Velocity', 'Shadow', 'Orbit', 'Crimson'];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function gameTitleSuffixes(): array
+    {
+        return ['Protocol', 'Arena', 'Frontier', 'Rush', 'Echo', 'Division'];
+    }
+
+    /**
+     * @return array{icon: string, label: string, kind: string, value: string}
+     */
+    private function descriptorProfile(ExampleField $field, ScenarioContext $context, ?EndpointExampleContext $endpoint, string $salt): array
+    {
+        $resource = $this->resourceContextResolver->resolve($field->path, $endpoint?->operationKind ?? '', $endpoint?->path ?? '');
+        $scope = $this->entityScopeSalt($field, $salt, null, $endpoint);
+
+        $profiles = match ($resource) {
+            'organization' => [
+                ['icon' => 'globe', 'label' => 'Domain', 'kind' => 'profile', 'value' => $this->domainValue($field, $context, $endpoint, $scope)],
+                ['icon' => 'location', 'label' => 'Region', 'kind' => 'profile', 'value' => 'North America'],
+                ['icon' => 'calendar', 'label' => 'Cadence', 'kind' => 'availability', 'value' => 'Weekly planning sync'],
+            ],
+            'workspace' => [
+                ['icon' => 'calendar', 'label' => 'Cadence', 'kind' => 'availability', 'value' => 'Weekdays at 10 AM PT'],
+                ['icon' => 'globe', 'label' => 'Region', 'kind' => 'profile', 'value' => 'North America'],
+                ['icon' => 'discord', 'label' => 'Community', 'kind' => 'social', 'value' => 'Discord-first ops'],
+            ],
+            'collection' => [
+                ['icon' => 'calendar', 'label' => 'Review cadence', 'kind' => 'availability', 'value' => 'Weekly review'],
+                ['icon' => 'globe', 'label' => 'Segment', 'kind' => 'profile', 'value' => 'Sponsor-ready creators'],
+                ['icon' => 'discord', 'label' => 'Owner', 'kind' => 'social', 'value' => 'Creator Ops'],
+            ],
+            'game', 'content' => [
+                ['icon' => 'globe', 'label' => 'Region', 'kind' => 'profile', 'value' => 'Global release'],
+                ['icon' => 'calendar', 'label' => 'Season', 'kind' => 'highlight', 'value' => 'Current season'],
+                ['icon' => 'location', 'label' => 'Category', 'kind' => 'profile', 'value' => 'Competitive title'],
+            ],
+            default => [
+                ['icon' => 'twitch', 'label' => 'Platform', 'kind' => 'social', 'value' => 'Twitch'],
+                ['icon' => 'globe', 'label' => 'Language', 'kind' => 'profile', 'value' => 'English / Spanish'],
+                ['icon' => 'calendar', 'label' => 'Schedule', 'kind' => 'availability', 'value' => 'Weeknights at 7 PM PT'],
+            ],
+        };
+
+        $index = hexdec(substr(hash('sha256', $context->seed.'|'.$scope.'|descriptor'), 0, 8)) % count($profiles);
+
+        return $profiles[$index];
+    }
+
+    private function taglineValue(ExampleField $field, ScenarioContext $context, ?EndpointExampleContext $endpoint, string $salt): string
+    {
+        $resource = $this->resourceContextResolver->resolve($field->path, $endpoint?->operationKind ?? '', $endpoint?->path ?? '');
+
+        return match ($resource) {
+            'organization' => $this->pick([
+                'Partner-facing organization record for creator and workspace operations.',
+                'Top-level organization surface for teams, workspaces, and partner workflows.',
+            ], $context->seed, $salt),
+            'workspace' => $this->pick([
+                'Shared operating space for creator coverage, reporting, and campaign planning.',
+                'Workspace-level control surface for live tracking, rosters, and creator reviews.',
+            ], $context->seed, $salt),
+            'collection' => $this->pick([
+                'Curated shortlist of creators to review and activate this week.',
+                'Saved collection used to track priority creators for follow-up.',
+            ], $context->seed, $salt),
+            'game', 'content' => $this->pick([
+                'Competitive coverage and discovery surface for high-signal titles.',
+                'Catalog-ready content example for discovery, rankings, and creator workflows.',
+            ], $context->seed, $salt),
+            default => $this->pick([
+                'Competitive energy with community-first streams.',
+                'Late-night ranked sessions and watch parties.',
+                'Creator-led coverage for esports and games.',
+            ], $context->seed, $salt),
+        };
+    }
+
+    private function noteValue(ExampleField $field, ScenarioContext $context, ?EndpointExampleContext $endpoint, string $salt): string
+    {
+        $resource = $this->resourceContextResolver->resolve($field->path, $endpoint?->operationKind ?? '', $endpoint?->path ?? '');
+
+        return match ($resource) {
+            'organization' => $this->pick([
+                'Keep this organization focused on partner-ready teams and shared workspace access.',
+                'Review workspace coverage before expanding member access.',
+            ], $context->seed, $salt),
+            'workspace' => $this->pick([
+                'Keep this workspace focused on weekly creator operations and live reporting.',
+                'Use this workspace for day-to-day roster and pulse review.',
+            ], $context->seed, $salt),
+            'collection' => $this->pick([
+                'Keep this folder focused on sponsor-ready creators and short-term follow-up.',
+                'Use this collection for the next review cycle only.',
+            ], $context->seed, $salt),
+            default => $this->pick([
+                'Follow up after the next stream recap.',
+                'Prioritize creators with strong watch-party engagement.',
+                'Keep this list focused on weekly collaboration targets.',
+            ], $context->seed, $salt),
+        };
+    }
+
+    private function requestPayloadValue(ExampleField $field, ScenarioContext $context, ?EndpointExampleContext $endpoint, string $salt): string
+    {
+        $resource = $this->resourceContextResolver->resolve($field->path, $endpoint?->operationKind ?? '', $endpoint?->path ?? '');
+
+        return match ($resource) {
+            'organization' => $this->pick(['sync_org_workspaces', 'refresh_partner_roster', 'hydrate_org_catalog'], $context->seed, $salt),
+            'workspace' => $this->pick(['hydrate_workspace_catalog', 'refresh_live_content_tables', 'sync_workspace_watchlist'], $context->seed, $salt),
+            'collection' => $this->pick(['refresh_creators_list_metrics', 'hydrate_creators_list', 'sync_priority_creators'], $context->seed, $salt),
+            'game', 'content' => $this->pick(['refresh_game_catalog', 'sync_featured_titles', 'hydrate_content_rankings'], $context->seed, $salt),
+            default => $this->pick(['sync_recent_creators', 'refresh_live_content_tables', 'hydrate_workspace_catalog'], $context->seed, $salt),
+        };
     }
 
     private function uuid(string $seed, string $salt): string

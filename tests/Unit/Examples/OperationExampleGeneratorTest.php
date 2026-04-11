@@ -338,6 +338,7 @@ it('uses endpoint context to keep game query filters and response slugs coherent
             operationKind: 'games.index',
         ),
         queryParams: [
+            exampleField('query.search', 'query', 'string', 'search_term', false, true, confidence: 0.9),
             exampleField('query.starts_with', 'query', 'string', 'search_prefix', false, true, confidence: 0.9),
         ],
         responseFields: [
@@ -350,7 +351,8 @@ it('uses endpoint context to keep game query filters and response slugs coherent
     $example = $generator->generate($spec, 'project-games-context', ExampleMode::HappyPath)->toArray();
     $first = $example['response']['body']['data'][0];
 
-    expect($example['request']['queryParams']['starts_with'])->not->toStartWith('example_')
+    expect($example['request']['queryParams']['search'])->toBe($example['request']['queryParams']['starts_with'])
+        ->and($first['name'])->toStartWith(Str::headline($example['request']['queryParams']['search']))
         ->and($example['request']['queryParams']['starts_with'])->toMatch('/^[a-z0-9]+$/')
         ->and($first['slug'])->toBe(Str::slug($first['name']))
         ->and($first['name'])->toMatch('/^(Neon|Phantom|Velocity|Shadow|Orbit|Crimson) (Protocol|Arena|Frontier|Rush|Echo|Division)$/');
@@ -368,7 +370,9 @@ it('uses collection naming for list-like resources instead of person names', fun
             operationKind: 'workspaces.creators-list.store',
         ),
         requestFields: [
+            exampleField('body.description', 'body', 'string', 'tagline', true, false),
             exampleField('body.name', 'body', 'string', 'collection_name', true, false),
+            exampleField('body.request', 'body', 'string', 'request_payload', true, false),
             exampleField('body.slug', 'body', 'string', 'slug', true, false),
         ],
         responseStatuses: [201],
@@ -377,7 +381,40 @@ it('uses collection naming for list-like resources instead of person names', fun
     $body = $generator->generate($spec, 'project-creators-list', ExampleMode::HappyPath)->toArray()['request']['body'];
 
     expect($body['name'])->toMatch('/^(Featured|Priority|Partner|Weekly|Live|Creator) (Watchlist|Roster|Folder|Collection|Directory|Board)$/')
+        ->and($body['description'])->not->toContain('ranked sessions')
+        ->and($body['request'])->toBeIn(['refresh_creators_list_metrics', 'hydrate_creators_list', 'sync_priority_creators'])
         ->and($body['slug'])->toBe(Str::slug($body['name']));
+});
+
+it('keeps descriptor fields internally coherent for creator information responses', function () {
+    $generator = new OperationExampleGenerator;
+
+    $spec = new OperationExampleSpec(
+        endpoint: new EndpointExampleContext(
+            method: 'GET',
+            path: '/api/creators/{creator}/creator-information',
+            routeName: 'creators.information.index',
+            actionKey: 'App\\Http\\Controllers\\CreatorInformationController::index',
+            operationKind: 'creators.information.index',
+        ),
+        responseFields: [
+            exampleField('response.data[].icon', 'response', 'string', 'icon_name', true, false),
+            exampleField('response.data[].label', 'response', 'string', 'label', true, false),
+            exampleField('response.data[].type', 'response', 'string', 'kind', true, false),
+            exampleField('response.data[].value', 'response', 'string', 'attribute_value', true, false),
+        ],
+        responseStatuses: [200],
+    );
+
+    $first = $generator->generate($spec, 'project-creator-info', ExampleMode::HappyPath)->toArray()['response']['body']['data'][0];
+
+    $coherentProfiles = [
+        ['icon' => 'twitch', 'label' => 'Platform', 'type' => 'social', 'value' => 'Twitch'],
+        ['icon' => 'globe', 'label' => 'Language', 'type' => 'profile', 'value' => 'English / Spanish'],
+        ['icon' => 'calendar', 'label' => 'Schedule', 'type' => 'availability', 'value' => 'Weeknights at 7 PM PT'],
+    ];
+
+    expect(in_array($first, $coherentProfiles, true))->toBeTrue();
 });
 
 /**
