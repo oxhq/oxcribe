@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Oxhq\Oxcribe\Examples;
 
+use Oxhq\Oxcribe\Examples\Data\EndpointExampleContext;
 use Oxhq\Oxcribe\Examples\Data\ExampleField;
 use Oxhq\Oxcribe\Examples\Data\ExampleScenario;
 use Oxhq\Oxcribe\Examples\Data\GeneratedOperationExample;
@@ -33,16 +34,16 @@ final readonly class OperationExampleGenerator
         $scenarioSeed = $scenario !== null ? $projectSeed.'|scenario:'.$scenario->key : $projectSeed;
         $context = $this->scenarioContextFactory->make($scenarioSeed, $spec->endpoint, $mode);
         $request = new GeneratedRequestExample(
-            pathParams: $this->buildPayloadMap($spec->pathParams, $context, $mode),
-            queryParams: $this->buildPayloadMap($spec->queryParams, $context, $mode),
-            body: $this->buildBodyPayload($spec->requestFields, $context, $mode, $scenario?->arrayCount),
+            pathParams: $this->buildPayloadMap($spec->pathParams, $context, $mode, $spec->endpoint),
+            queryParams: $this->buildPayloadMap($spec->queryParams, $context, $mode, $spec->endpoint),
+            body: $this->buildBodyPayload($spec->requestFields, $context, $mode, $spec->endpoint, $scenario?->arrayCount),
             headers: [
                 'Accept' => 'application/json',
             ],
         );
         $response = new GeneratedResponseExample(
             status: $this->responseStatus($spec),
-            body: $this->buildBodyPayload($spec->responseFields, $context, $mode, $scenario?->arrayCount),
+            body: $this->buildBodyPayload($spec->responseFields, $context, $mode, $spec->endpoint, $scenario?->arrayCount),
         );
         $snippets = $this->snippetFactory->make($spec, $request, $baseUrl, $bearerToken);
 
@@ -96,11 +97,11 @@ final readonly class OperationExampleGenerator
      * @param  list<ExampleField>  $fields
      * @return array<string, mixed>
      */
-    private function buildPayloadMap(array $fields, ScenarioContext $context, ExampleMode $mode): array
+    private function buildPayloadMap(array $fields, ScenarioContext $context, ExampleMode $mode, EndpointExampleContext $endpoint): array
     {
         $payload = [];
         foreach ($this->filteredFields($fields, $mode) as $field) {
-            $payload[$field->name] = $this->valueGenerator->generate($field, $context);
+            $payload[$field->name] = $this->valueGenerator->generate($field, $context, endpoint: $endpoint);
         }
         ksort($payload);
 
@@ -110,7 +111,7 @@ final readonly class OperationExampleGenerator
     /**
      * @param  list<ExampleField>  $fields
      */
-    private function buildBodyPayload(array $fields, ScenarioContext $context, ExampleMode $mode, ?int $arrayCountOverride = null): mixed
+    private function buildBodyPayload(array $fields, ScenarioContext $context, ExampleMode $mode, EndpointExampleContext $endpoint, ?int $arrayCountOverride = null): mixed
     {
         $payload = [];
         $filtered = $this->filteredFields($fields, $mode);
@@ -128,7 +129,7 @@ final readonly class OperationExampleGenerator
                 continue;
             }
 
-            $this->assignPathValue($payload, $relativePath, $field, $context, $arrayCountOverride ?? $this->arrayCount($mode));
+            $this->assignPathValue($payload, $relativePath, $field, $context, $arrayCountOverride ?? $this->arrayCount($mode), $endpoint);
         }
 
         return $payload === [] ? null : $payload;
@@ -200,17 +201,17 @@ final readonly class OperationExampleGenerator
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function assignPathValue(array &$payload, string $path, ExampleField $field, ScenarioContext $context, int $arrayCount): void
+    private function assignPathValue(array &$payload, string $path, ExampleField $field, ScenarioContext $context, int $arrayCount, EndpointExampleContext $endpoint): void
     {
         $segments = array_values(array_filter(explode('.', $path), static fn (string $segment): bool => $segment !== ''));
-        $this->assignSegments($payload, $segments, $field, $context, $arrayCount, null);
+        $this->assignSegments($payload, $segments, $field, $context, $arrayCount, $endpoint, null);
     }
 
     /**
      * @param  array<string, mixed>  $cursor
      * @param  list<string>  $segments
      */
-    private function assignSegments(array &$cursor, array $segments, ExampleField $field, ScenarioContext $context, int $arrayCount, ?int $index): void
+    private function assignSegments(array &$cursor, array $segments, ExampleField $field, ScenarioContext $context, int $arrayCount, EndpointExampleContext $endpoint, ?int $index): void
     {
         if ($segments === []) {
             return;
@@ -228,7 +229,7 @@ final readonly class OperationExampleGenerator
             $cursor[$key] ??= [];
             for ($i = 0; $i < $arrayCount; $i++) {
                 if ($segments === []) {
-                    $cursor[$key][$i] = $this->valueGenerator->generateCollectionItem($field, $context, $i);
+                    $cursor[$key][$i] = $this->valueGenerator->generateCollectionItem($field, $context, $i, $endpoint);
 
                     continue;
                 }
@@ -237,7 +238,7 @@ final readonly class OperationExampleGenerator
                 if (! is_array($cursor[$key][$i])) {
                     $cursor[$key][$i] = [];
                 }
-                $this->assignSegments($cursor[$key][$i], $segments, $field, $context, $arrayCount, $i);
+                $this->assignSegments($cursor[$key][$i], $segments, $field, $context, $arrayCount, $endpoint, $i);
             }
 
             return;
@@ -245,12 +246,12 @@ final readonly class OperationExampleGenerator
 
         if ($segments === []) {
             if ($field->collection || $field->baseType === 'array') {
-                $cursor[$key] = $this->collectionTerminalValue($field, $context, $arrayCount);
+                $cursor[$key] = $this->collectionTerminalValue($field, $context, $arrayCount, $endpoint);
 
                 return;
             }
 
-            $cursor[$key] = $this->valueGenerator->generate($field, $context, $index);
+            $cursor[$key] = $this->valueGenerator->generate($field, $context, $index, $endpoint);
 
             return;
         }
@@ -259,7 +260,7 @@ final readonly class OperationExampleGenerator
         if (! is_array($cursor[$key])) {
             $cursor[$key] = [];
         }
-        $this->assignSegments($cursor[$key], $segments, $field, $context, $arrayCount, $index);
+        $this->assignSegments($cursor[$key], $segments, $field, $context, $arrayCount, $endpoint, $index);
     }
 
     private function arrayCount(ExampleMode $mode): int
@@ -270,11 +271,11 @@ final readonly class OperationExampleGenerator
     /**
      * @return list<mixed>
      */
-    private function collectionTerminalValue(ExampleField $field, ScenarioContext $context, int $arrayCount): array
+    private function collectionTerminalValue(ExampleField $field, ScenarioContext $context, int $arrayCount, EndpointExampleContext $endpoint): array
     {
         $values = [];
         for ($i = 0; $i < $arrayCount; $i++) {
-            $values[] = $this->valueGenerator->generateCollectionItem($field, $context, $i);
+            $values[] = $this->valueGenerator->generateCollectionItem($field, $context, $i, $endpoint);
         }
 
         return $values;

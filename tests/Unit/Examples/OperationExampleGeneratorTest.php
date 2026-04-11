@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Str;
 use Oxhq\Oxcribe\Examples\Data\EndpointExampleContext;
 use Oxhq\Oxcribe\Examples\Data\ExampleField;
 use Oxhq\Oxcribe\Examples\Data\FieldConstraints;
@@ -279,6 +280,104 @@ it('generates richer collection, domain, request payload, and note examples with
         ->and($example['request']['body']['workspaces'][0])->toBeInt()
         ->and($example['request']['body']['platform_accounts'])->toBeArray()
         ->and($example['request']['body']['platform_accounts'][0])->toHaveKeys(['platform', 'handle']);
+});
+
+it('keeps organization and workspace examples semantically consistent across name-like fields', function () {
+    $generator = new OperationExampleGenerator;
+
+    $organizationSpec = new OperationExampleSpec(
+        endpoint: new EndpointExampleContext(
+            method: 'PUT',
+            path: '/api/organizations/{organization}',
+            routeName: 'organizations.update',
+            actionKey: 'App\\Http\\Controllers\\OrganizationController::update',
+            operationKind: 'organizations.update',
+        ),
+        requestFields: [
+            exampleField('body.name', 'body', 'string', 'company_name', true, false),
+            exampleField('body.slug', 'body', 'string', 'slug', true, false),
+            exampleField('body.domain', 'body', 'string', 'domain', true, false),
+        ],
+        responseStatuses: [200],
+    );
+
+    $workspaceSpec = new OperationExampleSpec(
+        endpoint: new EndpointExampleContext(
+            method: 'POST',
+            path: '/api/organizations/{organization}/workspaces',
+            routeName: 'organizations.workspaces.store',
+            actionKey: 'App\\Http\\Controllers\\OrganizationWorkspaceController::store',
+            operationKind: 'organizations.store',
+        ),
+        requestFields: [
+            exampleField('body.name', 'body', 'string', 'workspace_name', true, false),
+            exampleField('body.slug', 'body', 'string', 'slug', true, false),
+        ],
+        responseStatuses: [201],
+    );
+
+    $organization = $generator->generate($organizationSpec, 'project-organizations', ExampleMode::HappyPath)->toArray()['request']['body'];
+    $workspace = $generator->generate($workspaceSpec, 'project-workspaces', ExampleMode::HappyPath)->toArray()['request']['body'];
+
+    expect($organization['name'])->not->toMatch('/^[A-Z][a-z]+ [A-Z][a-z]+$/')
+        ->and($organization['slug'])->toBe(Str::slug($organization['name']))
+        ->and($organization['domain'])->toBe(Str::slug($organization['name']).'.gg')
+        ->and($workspace['name'])->toMatch('/(Lab|Desk|Ops|Hub|Room|Watchlist|Control|Studio)$/')
+        ->and($workspace['slug'])->toBe(Str::slug($workspace['name']));
+});
+
+it('uses endpoint context to keep game query filters and response slugs coherent', function () {
+    $generator = new OperationExampleGenerator;
+
+    $spec = new OperationExampleSpec(
+        endpoint: new EndpointExampleContext(
+            method: 'GET',
+            path: '/api/games',
+            routeName: 'games.index',
+            actionKey: 'App\\Http\\Controllers\\Api\\DiscoveryController::games',
+            operationKind: 'games.index',
+        ),
+        queryParams: [
+            exampleField('query.starts_with', 'query', 'string', 'search_prefix', false, true, confidence: 0.9),
+        ],
+        responseFields: [
+            exampleField('response.data[].name', 'response', 'string', 'title', true, false),
+            exampleField('response.data[].slug', 'response', 'string', 'slug', true, false),
+        ],
+        responseStatuses: [200],
+    );
+
+    $example = $generator->generate($spec, 'project-games-context', ExampleMode::HappyPath)->toArray();
+    $first = $example['response']['body']['data'][0];
+
+    expect($example['request']['queryParams']['starts_with'])->not->toStartWith('example_')
+        ->and($example['request']['queryParams']['starts_with'])->toMatch('/^[a-z0-9]+$/')
+        ->and($first['slug'])->toBe(Str::slug($first['name']))
+        ->and($first['name'])->toMatch('/^(Neon|Phantom|Velocity|Shadow|Orbit|Crimson) (Protocol|Arena|Frontier|Rush|Echo|Division)$/');
+});
+
+it('uses collection naming for list-like resources instead of person names', function () {
+    $generator = new OperationExampleGenerator;
+
+    $spec = new OperationExampleSpec(
+        endpoint: new EndpointExampleContext(
+            method: 'POST',
+            path: '/api/workspaces/{workspace}/creators-list',
+            routeName: 'workspaces.creators-list.store',
+            actionKey: 'App\\Http\\Controllers\\CreatorsListController::store',
+            operationKind: 'workspaces.creators-list.store',
+        ),
+        requestFields: [
+            exampleField('body.name', 'body', 'string', 'collection_name', true, false),
+            exampleField('body.slug', 'body', 'string', 'slug', true, false),
+        ],
+        responseStatuses: [201],
+    );
+
+    $body = $generator->generate($spec, 'project-creators-list', ExampleMode::HappyPath)->toArray()['request']['body'];
+
+    expect($body['name'])->toMatch('/^(Featured|Priority|Partner|Weekly|Live|Creator) (Watchlist|Roster|Folder|Collection|Directory|Board)$/')
+        ->and($body['slug'])->toBe(Str::slug($body['name']));
 });
 
 /**

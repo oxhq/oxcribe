@@ -16,7 +16,29 @@ it('classifies company fields, password confirmation, enums, and bindings', func
             'required' => true,
             'nullable' => false,
         ],
-        endpoint: new EndpointExampleContext('POST', '/api/companies', 'companies.store', 'App\\Http\\Controllers\\CompanyController::store', 'companies.store'),
+        endpoint: new EndpointExampleContext('POST', '/api/organizations', 'organizations.store', 'App\\Http\\Controllers\\OrganizationController::store', 'organizations.store'),
+    );
+
+    $workspaceName = $classifier->classify(
+        path: 'name',
+        location: 'body',
+        metadata: [
+            'type' => 'string',
+            'required' => true,
+            'nullable' => false,
+        ],
+        endpoint: new EndpointExampleContext('POST', '/api/workspaces', 'workspaces.store', 'App\\Http\\Controllers\\WorkspaceController::store', 'workspaces.store'),
+    );
+
+    $collectionName = $classifier->classify(
+        path: 'name',
+        location: 'body',
+        metadata: [
+            'type' => 'string',
+            'required' => true,
+            'nullable' => false,
+        ],
+        endpoint: new EndpointExampleContext('POST', '/api/workspaces/{workspace}/creators-list', 'workspaces.creators-list.store', 'App\\Http\\Controllers\\CreatorsListController::store', 'workspaces.creators-list.store'),
     );
 
     $password = $classifier->classify(
@@ -132,8 +154,21 @@ it('classifies company fields, password confirmation, enums, and bindings', func
         endpoint: new EndpointExampleContext('POST', '/api/workspaces', 'workspaces.store', 'App\\Http\\Controllers\\WorkspaceController::store', 'workspaces.store'),
     );
 
+    $startsWith = $classifier->classify(
+        path: 'starts_with',
+        location: 'query',
+        metadata: [
+            'type' => 'string',
+            'required' => false,
+            'nullable' => true,
+        ],
+        endpoint: new EndpointExampleContext('GET', '/api/games', 'games.index', 'App\\Http\\Controllers\\DiscoveryController::games', 'games.index'),
+    );
+
     expect($companyName->semanticType)->toBe('company_name')
         ->and($companyName->hints->confidence)->toBeGreaterThan(0.5)
+        ->and($workspaceName->semanticType)->toBe('workspace_name')
+        ->and($collectionName->semanticType)->toBe('collection_name')
         ->and($password->semanticType)->toBe('password')
         ->and($password->constraints->confirmedWith)->toBe('password_confirmation')
         ->and($role->semanticType)->toBe('role')
@@ -145,5 +180,6 @@ it('classifies company fields, password confirmation, enums, and bindings', func
         ->and($limit->semanticType)->toBe('page_size')
         ->and($broadcastId->semanticType)->toBe('foreign_key_id')
         ->and($domain->semanticType)->toBe('domain')
-        ->and($request->semanticType)->toBe('request_payload');
+        ->and($request->semanticType)->toBe('request_payload')
+        ->and($startsWith->semanticType)->toBe('search_prefix');
 });

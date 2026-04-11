@@ -11,6 +11,10 @@ use Oxhq\Oxcribe\Examples\Data\FieldHints;
 
 final class FieldClassifier
 {
+    public function __construct(
+        private readonly ResourceContextResolver $resourceContextResolver = new ResourceContextResolver,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $metadata
      * @param  list<string>  $knownPaths
@@ -25,7 +29,7 @@ final class FieldClassifier
         $semanticSources = [];
         $semanticVia = [];
         $confidence = 0.2;
-        $semanticType = $this->semanticType($name, $location, $baseType, $format, $allowedValues, $metadata, $endpoint, $semanticSources, $semanticVia, $confidence);
+        $semanticType = $this->semanticType($name, $path, $location, $baseType, $format, $allowedValues, $metadata, $endpoint, $semanticSources, $semanticVia, $confidence);
 
         $confirmedWith = null;
         if ($semanticType === 'password' && in_array($location.'.password_confirmation', $knownPaths, true)) {
@@ -71,6 +75,7 @@ final class FieldClassifier
      */
     private function semanticType(
         string $name,
+        string $fieldPath,
         string $location,
         string $baseType,
         string $format,
@@ -144,7 +149,7 @@ final class FieldClassifier
             return 'foreign_key_id';
         }
 
-        $aliasSemantic = $this->semanticAlias($normalized, $operationKind, $path);
+        $aliasSemantic = $this->semanticAlias($normalized, $fieldPath, $operationKind, $path);
         if ($aliasSemantic !== null) {
             $sources[] = 'field_name';
             $via[] = $normalized;
@@ -192,7 +197,7 @@ final class FieldClassifier
         return 'string';
     }
 
-    private function semanticAlias(string $name, string $operationKind, string $path): ?string
+    private function semanticAlias(string $name, string $fieldPath, string $operationKind, string $path): ?string
     {
         if ($name === 'identifier' && str_contains($operationKind, 'auth.login')) {
             return 'email';
@@ -227,6 +232,7 @@ final class FieldClassifier
             'tagline' => ['tagline', 'bio', 'summary', 'description'],
             'highlight' => ['highlight', 'highlights'],
             'timeslot' => ['timeslot', 'availability', 'slot'],
+            'search_prefix' => ['starts_with', 'begins_with', 'prefix'],
             'message' => ['message'],
             'error_message' => ['error', 'errors', 'error_message'],
             'note' => ['note', 'notes'],
@@ -247,6 +253,9 @@ final class FieldClassifier
             'city' => ['city'],
             'state' => ['state'],
             'country' => ['country'],
+            'workspace_name' => ['workspace_name'],
+            'project_name' => ['project_name'],
+            'collection_name' => ['collection_name'],
         ];
 
         foreach ($aliases as $semantic => $values) {
@@ -256,15 +265,15 @@ final class FieldClassifier
         }
 
         if ($name === 'name') {
-            if (str_contains($operationKind, 'companies.') || str_contains($path, '/companies')) {
-                return 'company_name';
-            }
-
-            if ($this->resourcePrefersTitles($operationKind, $path)) {
-                return 'title';
-            }
-
-            return 'full_name';
+            return match ($this->resourceContextResolver->resolve($fieldPath, $operationKind, $path)) {
+                'organization' => 'company_name',
+                'workspace' => 'workspace_name',
+                'project' => 'project_name',
+                'collection' => 'collection_name',
+                'game', 'content' => 'title',
+                'person' => 'full_name',
+                default => $this->resourcePrefersTitles($operationKind, $path) ? 'title' : 'full_name',
+            };
         }
 
         return null;

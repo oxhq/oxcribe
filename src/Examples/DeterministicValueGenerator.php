@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace Oxhq\Oxcribe\Examples;
 
 use Illuminate\Support\Str;
+use Oxhq\Oxcribe\Examples\Data\EndpointExampleContext;
 use Oxhq\Oxcribe\Examples\Data\ExampleField;
 use Oxhq\Oxcribe\Examples\Data\ScenarioContext;
 
 final class DeterministicValueGenerator
 {
-    public function generate(ExampleField $field, ScenarioContext $context, ?int $index = null): mixed
+    public function __construct(
+        private readonly ResourceContextResolver $resourceContextResolver = new ResourceContextResolver,
+    ) {}
+
+    public function generate(ExampleField $field, ScenarioContext $context, ?int $index = null, ?EndpointExampleContext $endpoint = null): mixed
     {
         $salt = $field->path.($index !== null ? '#'.$index : '');
 
@@ -20,9 +25,9 @@ final class DeterministicValueGenerator
             'first_name' => $index === null ? ($context->person?->firstName ?? $this->indexedFirstName($context, $salt)) : $this->indexedFirstName($context, $salt),
             'last_name' => $index === null ? ($context->person?->lastName ?? $this->indexedLastName($context, $salt)) : $this->indexedLastName($context, $salt),
             'full_name' => $index === null ? ($context->person?->fullName ?? $this->indexedFullName($context, $salt)) : $this->indexedFullName($context, $salt),
-            'title' => $this->titleValue($context, $salt),
+            'title' => $this->titleLikeValue($field, $context, $endpoint, $salt, $index),
             'genre' => $this->pick(['Action RPG', 'Tactical Shooter', 'MOBA', 'Battle Royale', 'Kart Racer', 'Indie Platformer'], $context->seed, $salt),
-            'domain' => $this->domainValue($context, $salt),
+            'domain' => $this->domainValue($field, $context, $endpoint, $salt, $index),
             'icon_name' => $this->pick(['twitch', 'youtube', 'discord', 'calendar', 'location', 'globe'], $context->seed, $salt),
             'label' => $this->pick(['Platform', 'Language', 'Region', 'Schedule', 'Community'], $context->seed, $salt),
             'kind' => $this->pick(['badge', 'profile', 'social', 'availability', 'highlight'], $context->seed, $salt),
@@ -45,11 +50,13 @@ final class DeterministicValueGenerator
             'json_blob' => $this->jsonBlobValue($context, $salt),
             'username' => $index === null ? ($context->person?->username ?? $this->indexedUsername($context, $salt)) : $this->indexedUsername($context, $salt),
             'phone' => $index === null ? ($context->person?->phone ?? $this->indexedPhone($context, $salt)) : $this->indexedPhone($context, $salt),
-            'company_name' => $context->company?->name ?? 'Acme Logistics',
+            'company_name' => $this->entityLabel($field, $context, $endpoint, $salt, $index, fallbackToCompany: true),
+            'workspace_name' => $this->entityLabel($field, $context, $endpoint, $salt, $index, fallbackToWorkspace: true),
+            'project_name' => $this->entityLabel($field, $context, $endpoint, $salt, $index, fallbackToProject: true),
+            'collection_name' => $this->entityLabel($field, $context, $endpoint, $salt, $index, fallbackToCollection: true),
+            'search_prefix' => $this->searchPrefixValue($field, $context, $endpoint, $salt),
             'url' => $this->urlValue($field, $context),
-            'slug' => $index === null
-                ? Str::slug($context->person?->fullName ?? $this->indexedFullName($context, $salt))
-                : Str::slug($this->indexedFullName($context, $salt)),
+            'slug' => Str::slug($this->entityLabel($field, $context, $endpoint, $salt, $index, fallbackToCompany: true)),
             'uuid' => $this->uuid($context->seed, $salt),
             'ulid' => $this->ulid($context->seed, $salt),
             'token' => $context->auth?->token ?? 'tok_test_8f4a1c29b2',
@@ -71,11 +78,11 @@ final class DeterministicValueGenerator
             'boolean' => true,
             'integer' => $this->integer($context->seed, $salt, 1, 999),
             'number' => $this->decimal($context->seed, $salt, 1, 999),
-            default => $this->fallbackValue($field, $context, $salt),
+            default => $this->fallbackValue($field, $context, $salt, $endpoint, $index),
         };
     }
 
-    public function generateCollectionItem(ExampleField $field, ScenarioContext $context, int $index): mixed
+    public function generateCollectionItem(ExampleField $field, ScenarioContext $context, int $index, ?EndpointExampleContext $endpoint = null): mixed
     {
         $normalizedName = $this->normalizedFieldName($field);
 
@@ -107,7 +114,7 @@ final class DeterministicValueGenerator
         }
 
         if (! in_array($field->semanticType, ['array', 'object'], true) && $field->baseType !== 'array' && $field->baseType !== 'object') {
-            return $this->generate($field, $context, $index);
+            return $this->generate($field, $context, $index, $endpoint);
         }
 
         return $this->pick([
@@ -117,29 +124,31 @@ final class DeterministicValueGenerator
         ], $context->seed, $field->path.'#item#'.$index);
     }
 
-    private function fallbackValue(ExampleField $field, ScenarioContext $context, string $salt): mixed
+    private function fallbackValue(ExampleField $field, ScenarioContext $context, string $salt, ?EndpointExampleContext $endpoint = null, ?int $index = null): mixed
     {
         return match ($field->baseType) {
             'boolean' => true,
             'integer' => $this->integer($context->seed, $salt, 1, 999),
             'number' => $this->decimal($context->seed, $salt, 1, 999),
             'object' => $this->objectFallback($field, $context, $salt),
-            default => $this->stringFallback($field, $context, $salt),
+            default => $this->stringFallback($field, $context, $salt, $endpoint, $index),
         };
     }
 
-    private function stringFallback(ExampleField $field, ScenarioContext $context, string $salt): string
+    private function stringFallback(ExampleField $field, ScenarioContext $context, string $salt, ?EndpointExampleContext $endpoint = null, ?int $index = null): string
     {
         if ($field->allowedValues !== []) {
             return $field->allowedValues[0];
         }
 
         return match ($field->name) {
-            'name' => $this->indexedFullName($context, $salt),
+            'name' => $this->entityLabel($field, $context, $endpoint, $salt, $index),
             'account' => $this->indexedUsername($context, $salt),
             'list' => $this->pick(['featured-broadcasts', 'top-clips', 'partner-watchlist'], $context->seed, $salt),
             'path' => $field->location === 'path' ? 'exports/weekly-report.csv' : 'media/uploads/avatar.jpg',
-            'workspace' => Str::slug($this->pick(['North Arena', 'Creator Lab', 'Velocity Hub'], $context->seed, $salt)),
+            'workspace' => Str::slug($this->workspaceNameValue($context, $this->entityScopeSalt($field, $salt, $index, $endpoint))),
+            'domain' => $this->domainValue($field, $context, $endpoint, $salt, $index),
+            'starts_with' => $this->searchPrefixValue($field, $context, $endpoint, $salt),
             'data' => 'saved',
             default => 'example_'.$this->slugPart($field->name).'_'.$this->hashSuffix($context->seed, $salt, 4),
         };
@@ -171,6 +180,15 @@ final class DeterministicValueGenerator
         return $prefix.' '.$suffix;
     }
 
+    private function titleLikeValue(ExampleField $field, ScenarioContext $context, ?EndpointExampleContext $endpoint, string $salt, ?int $index = null): string
+    {
+        $resource = $this->resourceContextResolver->resolve($field->path, $endpoint?->operationKind ?? '', $endpoint?->path ?? '');
+
+        return in_array($resource, ['game', 'content', 'project'], true)
+            ? $this->entityLabel($field, $context, $endpoint, $salt, $index, fallbackToProject: true)
+            : $this->titleValue($context, $salt);
+    }
+
     private function attributeValue(ScenarioContext $context, string $salt): string
     {
         return $this->pick([
@@ -192,8 +210,13 @@ final class DeterministicValueGenerator
         ], JSON_UNESCAPED_SLASHES) ?: '{}';
     }
 
-    private function domainValue(ScenarioContext $context, string $salt): string
+    private function domainValue(ExampleField $field, ScenarioContext $context, ?EndpointExampleContext $endpoint, string $salt, ?int $index = null): string
     {
+        $resource = $this->resourceContextResolver->resolve($field->path, $endpoint?->operationKind ?? '', $endpoint?->path ?? '');
+        if (in_array($resource, ['organization', 'workspace', 'project'], true)) {
+            return Str::slug($this->entityLabel($field, $context, $endpoint, $salt, $index, fallbackToCompany: true, fallbackToWorkspace: true, fallbackToProject: true)).'.gg';
+        }
+
         $prefix = $this->pick(['arena', 'creatorlab', 'velocity', 'watchparty', 'loaded'], $context->seed, $salt);
 
         return $prefix.'.gg';
@@ -256,6 +279,99 @@ final class DeterministicValueGenerator
         }
 
         return $context->company?->website ?? 'https://example.test';
+    }
+
+    private function searchPrefixValue(ExampleField $field, ScenarioContext $context, ?EndpointExampleContext $endpoint, string $salt): string
+    {
+        $resource = $this->resourceContextResolver->resolve($field->path, $endpoint?->operationKind ?? '', $endpoint?->path ?? '');
+        $label = match ($resource) {
+            'organization' => $this->organizationNameValue($context, 'resource:organization:'.$salt),
+            'workspace' => $this->workspaceNameValue($context, 'resource:workspace:'.$salt),
+            'project' => $this->projectNameValue($context, 'resource:project:'.$salt),
+            'collection' => $this->collectionNameValue($context, 'resource:collection:'.$salt),
+            'game', 'content' => $this->titleValue($context, 'resource:content:'.$salt),
+            default => $this->pick(['league', 'creator', 'valorant', 'fifa', 'streamer', 'tournament'], $context->seed, $salt),
+        };
+
+        $parts = preg_split('/[\s-]+/', strtolower($label)) ?: [];
+        $prefix = trim((string) ($parts[0] ?? ''));
+
+        return $prefix !== '' ? $prefix : strtolower($this->slugPart($label));
+    }
+
+    private function entityLabel(
+        ExampleField $field,
+        ScenarioContext $context,
+        ?EndpointExampleContext $endpoint,
+        string $salt,
+        ?int $index = null,
+        bool $fallbackToCompany = false,
+        bool $fallbackToWorkspace = false,
+        bool $fallbackToProject = false,
+        bool $fallbackToCollection = false,
+    ): string {
+        $resource = $this->resourceContextResolver->resolve($field->path, $endpoint?->operationKind ?? '', $endpoint?->path ?? '');
+        $scopeSalt = $this->entityScopeSalt($field, $salt, $index, $endpoint);
+
+        return match ($resource) {
+            'organization' => $this->organizationNameValue($context, $scopeSalt),
+            'workspace' => $this->workspaceNameValue($context, $scopeSalt),
+            'project' => $this->projectNameValue($context, $scopeSalt),
+            'collection' => $this->collectionNameValue($context, $scopeSalt),
+            'game', 'content' => $this->titleValue($context, $scopeSalt),
+            'person' => $index === null ? ($context->person?->fullName ?? $this->indexedFullName($context, $scopeSalt)) : $this->indexedFullName($context, $scopeSalt),
+            default => match (true) {
+                $fallbackToCompany => $this->organizationNameValue($context, $scopeSalt),
+                $fallbackToWorkspace => $this->workspaceNameValue($context, $scopeSalt),
+                $fallbackToProject => $this->projectNameValue($context, $scopeSalt),
+                $fallbackToCollection => $this->collectionNameValue($context, $scopeSalt),
+                default => $index === null ? ($context->person?->fullName ?? $this->indexedFullName($context, $scopeSalt)) : $this->indexedFullName($context, $scopeSalt),
+            },
+        };
+    }
+
+    private function entityScopeSalt(ExampleField $field, string $salt, ?int $index = null, ?EndpointExampleContext $endpoint = null): string
+    {
+        $path = preg_replace('/([a-z0-9])([A-Z])/', '$1_$2', $field->path) ?? $field->path;
+        $path = strtolower(str_replace('.*', '[]', $path));
+        $segments = array_values(array_filter(explode('.', $path)));
+        array_pop($segments);
+        $scope = implode('.', $segments);
+        $resource = $this->resourceContextResolver->resolve($field->path, $endpoint?->operationKind ?? '', $endpoint?->path ?? '') ?? 'resource';
+
+        return $resource.'|'.($scope !== '' ? $scope : $field->location).($index !== null ? '#'.$index : '');
+    }
+
+    private function organizationNameValue(ScenarioContext $context, string $salt): string
+    {
+        $prefix = $this->pick(['Loaded', 'Northwind', 'Atlas', 'Nimbus', 'Summit', 'Vertex', 'Crimson'], $context->seed, $salt.':prefix');
+        $suffix = $this->pick(['Gaming', 'Collective', 'Studios', 'League', 'Squad', 'Network', 'HQ'], $context->seed, $salt.':suffix');
+
+        return $prefix.' '.$suffix;
+    }
+
+    private function workspaceNameValue(ScenarioContext $context, string $salt): string
+    {
+        $prefix = $this->pick(['Creator', 'Broadcast', 'Community', 'Partner', 'Roster', 'Launch', 'Pulse', 'Ops'], $context->seed, $salt.':prefix');
+        $suffix = $this->pick(['Lab', 'Desk', 'Ops', 'Hub', 'Room', 'Watchlist', 'Control', 'Studio'], $context->seed, $salt.':suffix');
+
+        return $prefix.' '.$suffix;
+    }
+
+    private function projectNameValue(ScenarioContext $context, string $salt): string
+    {
+        $prefix = $this->pick(['Creator Graph', 'Workspace Pulse', 'Roster Sync', 'Broadcast Ops', 'Partner Intel', 'Live Status'], $context->seed, $salt.':prefix');
+        $suffix = $this->pick(['API', 'Gateway', 'Surface', 'Service'], $context->seed, $salt.':suffix');
+
+        return $prefix.' '.$suffix;
+    }
+
+    private function collectionNameValue(ScenarioContext $context, string $salt): string
+    {
+        $prefix = $this->pick(['Featured', 'Priority', 'Partner', 'Weekly', 'Live', 'Creator'], $context->seed, $salt.':prefix');
+        $suffix = $this->pick(['Watchlist', 'Roster', 'Folder', 'Collection', 'Directory', 'Board'], $context->seed, $salt.':suffix');
+
+        return $prefix.' '.$suffix;
     }
 
     private function uuid(string $seed, string $salt): string
