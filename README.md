@@ -151,6 +151,7 @@ Runtime is the primary source of truth, but `oxcribe` also supports route-level 
 
 - Laravel core request/response/resource patterns
 - runtime auth and middleware-derived OpenAPI security
+- first-class publish visibility via `oxcribe.publish` / `oxcribe.private` middleware markers
 - Inertia transport metadata
 - Spatie `laravel-data`, `laravel-query-builder`, `laravel-permission`, `laravel-medialibrary` and `laravel-translatable`
 

@@ -27,6 +27,7 @@ final readonly class OverrideRule
         public ?string $name = null,
         public ?string $prefix = null,
         public array $methods = [],
+        public array $middleware = [],
         public bool $include = true,
         public ?string $summary = null,
         public ?string $description = null,
@@ -58,6 +59,7 @@ final readonly class OverrideRule
             name: self::stringValue($selectors['name'] ?? null),
             prefix: self::stringValue($selectors['prefix'] ?? null),
             methods: self::stringList($selectors['methods'] ?? []),
+            middleware: self::selectorList($selectors['middleware'] ?? []),
             include: array_key_exists('include', $payload) ? (bool) $payload['include'] : true,
             summary: self::stringValue($payload['summary'] ?? null),
             description: self::stringValue($payload['description'] ?? null),
@@ -100,6 +102,10 @@ final readonly class OverrideRule
             return false;
         }
 
+        if ($this->middleware !== [] && ! $this->matchesMiddleware($operation->middleware)) {
+            return false;
+        }
+
         return true;
     }
 
@@ -120,6 +126,18 @@ final readonly class OverrideRule
         }
 
         return array_values(array_unique($values));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function selectorList(mixed $value): array
+    {
+        if (is_string($value) && $value !== '') {
+            return [$value];
+        }
+
+        return self::stringList($value);
     }
 
     private static function stringValue(mixed $value): ?string
@@ -153,6 +171,19 @@ final readonly class OverrideRule
         foreach ($this->methods as $method) {
             if (in_array(strtoupper($method), $normalizedOperationMethods, true)) {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function matchesMiddleware(array $operationMiddleware): bool
+    {
+        foreach ($this->middleware as $pattern) {
+            foreach ($operationMiddleware as $actual) {
+                if (self::matchesPattern($actual, $pattern)) {
+                    return true;
+                }
             }
         }
 

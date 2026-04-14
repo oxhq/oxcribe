@@ -67,6 +67,18 @@ return [
         'routes' => [],
     ],
 
+    'visibility' => [
+        'mode' => env('OXCRIBE_VISIBILITY_MODE', 'all'),
+        'include_middleware' => [
+            'oxcribe.publish',
+            'ox.publish',
+        ],
+        'exclude_middleware' => [
+            'oxcribe.private',
+            'ox.private',
+        ],
+    ],
+
     'auth' => [
         'default_scheme' => env('OXCRIBE_AUTH_DEFAULT_SCHEME', 'bearerAuth'),
         'middleware_schemes' => [

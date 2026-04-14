@@ -50,6 +50,11 @@ PHP);
             ['bearerAuth' => []],
         ],
     ]);
+    config()->set('oxcribe.visibility', [
+        'mode' => 'all',
+        'include_middleware' => [],
+        'exclude_middleware' => [],
+    ]);
     config()->set('oxcribe.overrides.routes', [
         [
             'match' => [
@@ -77,4 +82,26 @@ PHP);
             ],
         ])
         ->and($set->rules[4]->include)->toBeFalse();
+});
+
+it('builds middleware-based visibility rules from config', function () {
+    config()->set('oxcribe.overrides.enabled', true);
+    config()->set('oxcribe.overrides.files', []);
+    config()->set('oxcribe.overrides.defaults', []);
+    config()->set('oxcribe.overrides.routes', []);
+    config()->set('oxcribe.visibility', [
+        'mode' => 'only_marked',
+        'include_middleware' => ['oxcribe.publish'],
+        'exclude_middleware' => ['oxcribe.private'],
+    ]);
+
+    $set = app(OverrideLoader::class)->load(sys_get_temp_dir());
+
+    expect($set->sources)->toContain('config:visibility', 'config')
+        ->and($set->rules)->toHaveCount(3)
+        ->and($set->rules[0]->uri)->toBe('*')
+        ->and($set->rules[0]->include)->toBeFalse()
+        ->and($set->rules[1]->middleware)->toBe(['oxcribe.publish'])
+        ->and($set->rules[2]->middleware)->toBe(['oxcribe.private'])
+        ->and($set->rules[2]->include)->toBeFalse();
 });

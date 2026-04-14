@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Oxhq\Oxcribe;
 
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 use Oxhq\Oxcribe\Bridge\AnalysisRequestFactory;
 use Oxhq\Oxcribe\Bridge\ProcessOxinferClient;
@@ -16,6 +17,7 @@ use Oxhq\Oxcribe\Contracts\OxinferClient;
 use Oxhq\Oxcribe\Contracts\PackageInventoryDetector;
 use Oxhq\Oxcribe\Contracts\RuntimeSnapshotFactory;
 use Oxhq\Oxcribe\Docs\DocsPayloadFactory;
+use Oxhq\Oxcribe\Http\Middleware\VisibilityMarkerMiddleware;
 use Oxhq\Oxcribe\Merge\OperationGraphMerger;
 use Oxhq\Oxcribe\OpenApi\OpenApiDocumentFactory;
 use Oxhq\Oxcribe\Overrides\OverrideApplier;
@@ -83,6 +85,16 @@ final class OxcribeServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/oxcribe.php' => config_path('oxcribe.php'),
         ], 'oxcribe-config');
+
+        $router = $this->app->make(Router::class);
+        foreach ([
+            'oxcribe.publish',
+            'ox.publish',
+            'oxcribe.private',
+            'ox.private',
+        ] as $alias) {
+            $router->aliasMiddleware($alias, VisibilityMarkerMiddleware::class);
+        }
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'oxcribe');
         $this->loadRoutesFrom(__DIR__.'/../routes/oxcribe.php');

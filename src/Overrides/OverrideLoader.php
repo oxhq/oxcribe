@@ -29,6 +29,14 @@ final class OverrideLoader
         $rules = [];
         $sources = [];
 
+        foreach ($this->buildVisibilityRules() as $rule) {
+            $rules[] = $rule;
+        }
+
+        if ($rules !== []) {
+            $sources[] = 'config:visibility';
+        }
+
         foreach ($this->buildRulesFromPayload($overridesConfig['defaults'] ?? null, 'config:overrides.defaults') as $rule) {
             $rules[] = $rule;
         }
@@ -163,7 +171,7 @@ final class OverrideLoader
      */
     private function looksLikeRule(array $payload): bool
     {
-        foreach (['routeId', 'actionKey', 'uri', 'name', 'prefix', 'methods', 'tags', 'summary', 'description', 'operationId', 'deprecated', 'security', 'examples', 'responses', 'requestBody', 'x-oxcribe', 'externalDocs', 'extensions'] as $key) {
+        foreach (['routeId', 'actionKey', 'uri', 'name', 'prefix', 'methods', 'middleware', 'tags', 'summary', 'description', 'operationId', 'deprecated', 'security', 'examples', 'responses', 'requestBody', 'x-oxcribe', 'externalDocs', 'extensions'] as $key) {
             if (array_key_exists($key, $payload) && $this->hasMeaningfulValue($payload[$key])) {
                 return true;
             }
@@ -183,5 +191,79 @@ final class OverrideLoader
         }
 
         return $value !== null;
+    }
+
+    /**
+     * @return list<OverrideRule>
+     */
+    private function buildVisibilityRules(): array
+    {
+        $visibility = is_array($this->config['visibility'] ?? null) ? $this->config['visibility'] : [];
+        $mode = $this->normalizeVisibilityMode($visibility['mode'] ?? null);
+        $includeMiddleware = $this->selectorList($visibility['include_middleware'] ?? []);
+        $excludeMiddleware = $this->selectorList($visibility['exclude_middleware'] ?? []);
+
+        if ($mode === 'all' && $excludeMiddleware === []) {
+            return [];
+        }
+
+        $rules = [];
+
+        if ($mode === 'only_marked') {
+            $rules[] = OverrideRule::fromArray([
+                'match' => [
+                    'uri' => '*',
+                ],
+                'include' => false,
+            ], 'config:visibility[exclude-all]');
+
+            foreach ($includeMiddleware as $index => $middleware) {
+                $rules[] = OverrideRule::fromArray([
+                    'match' => [
+                        'middleware' => $middleware,
+                    ],
+                    'include' => true,
+                ], 'config:visibility[include]['.$index.']');
+            }
+        }
+
+        foreach ($excludeMiddleware as $index => $middleware) {
+            $rules[] = OverrideRule::fromArray([
+                'match' => [
+                    'middleware' => $middleware,
+                ],
+                'include' => false,
+            ], 'config:visibility[exclude]['.$index.']');
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function selectorList(mixed $value): array
+    {
+        if (is_string($value) && $value !== '') {
+            return [$value];
+        }
+
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter($value, static fn (mixed $item): bool => is_string($item) && $item !== '')));
+    }
+
+    private function normalizeVisibilityMode(mixed $value): string
+    {
+        if (! is_string($value) || $value === '') {
+            return 'all';
+        }
+
+        return match (strtolower($value)) {
+            'only_marked', 'marked', 'allowlist', 'whitelist' => 'only_marked',
+            default => 'all',
+        };
     }
 }
