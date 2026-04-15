@@ -73,7 +73,12 @@ final class DoctorCommand extends Command
             $blocking = true;
             $suggestedPath = $binaryResolver->suggestedInstallPath($oxinferConfig, $workingDirectory);
             $this->report('FAIL', 'Oxinfer binary', $exception->getMessage());
-            $this->line(sprintf('      Next: run `php artisan oxcribe:install-binary %s` or point OXINFER_BINARY to an executable path.', PackageVersion::TAG));
+            $sourceRoot = trim((string) ($oxinferConfig['source_root'] ?? ''));
+            $installCommand = sprintf('php artisan oxcribe:install-binary %s', PackageVersion::TAG);
+            if ($sourceRoot !== '') {
+                $installCommand .= sprintf(' --source-root=%s', $sourceRoot);
+            }
+            $this->line(sprintf('      Next: run `%s` or point OXINFER_BINARY to an executable path.', $installCommand));
             $this->line(sprintf('      Hint: the default app-local install path is %s', $suggestedPath));
         }
 

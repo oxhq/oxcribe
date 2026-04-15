@@ -10,7 +10,7 @@ it('reports a healthy first-publish preflight when the project, binary, and clou
 
     File::ensureDirectoryExists($projectRoot.'/bin');
     File::put($projectRoot.'/composer.json', json_encode(['name' => 'acme/example'], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
-    File::put($binaryPath, "#!/bin/sh\necho \"oxinfer version 0.1.0\"\n");
+    File::put($binaryPath, "#!/bin/sh\necho \"oxinfer version 0.1.1\"\n");
     @chmod($binaryPath, 0755);
 
     config()->set('app.version', '2026.03.26');
@@ -25,7 +25,7 @@ it('reports a healthy first-publish preflight when the project, binary, and clou
         ->expectsOutputToContain('PASS  composer.json:')
         ->expectsOutputToContain('PASS  Local docs: Local viewer enabled at /oxcribe/docs')
         ->expectsOutputToContain('PASS  Oxinfer binary:')
-        ->expectsOutputToContain('PASS  Oxinfer version: oxinfer version 0.1.0')
+        ->expectsOutputToContain('PASS  Oxinfer version: oxinfer version 0.1.1')
         ->expectsOutputToContain('PASS  Oxcribe Cloud URL: https://oxcloud.example.test')
         ->expectsOutputToContain('PASS  Publish token: Configured')
         ->expectsOutputToContain('PASS  Resolved publish version: 2026.03.26')
@@ -41,7 +41,7 @@ it('supports local-only readiness checks when cloud checks are skipped', functio
 
     File::ensureDirectoryExists($projectRoot.'/bin');
     File::put($projectRoot.'/composer.json', json_encode(['name' => 'acme/local'], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
-    File::put($binaryPath, "#!/bin/sh\necho \"oxinfer version 0.1.0\"\n");
+    File::put($binaryPath, "#!/bin/sh\necho \"oxinfer version 0.1.1\"\n");
     @chmod($binaryPath, 0755);
 
     config()->set('oxcribe.oxinfer.binary', $binaryPath);
@@ -70,9 +70,27 @@ it('fails with actionable output when first-publish preflight is missing critica
 
     $this->artisan('oxcribe:doctor', ['--project-root' => $projectRoot])
         ->expectsOutputToContain('FAIL  Oxinfer binary:')
-        ->expectsOutputToContain('Next: run `php artisan oxcribe:install-binary v0.1.0`')
+        ->expectsOutputToContain('Next: run `php artisan oxcribe:install-binary v0.1.1`')
         ->expectsOutputToContain('FAIL  Publish token: Missing OXCLOUD_TOKEN / oxcribe.publish.token.')
         ->expectsOutputToContain('Oxcribe preflight found blocking issues.')
+        ->assertFailed();
+
+    File::deleteDirectory($projectRoot);
+});
+
+it('suggests the configured local source root when oxinfer is missing', function () {
+    $projectRoot = sys_get_temp_dir().'/oxcribe-doctor-source-'.bin2hex(random_bytes(6));
+
+    File::ensureDirectoryExists($projectRoot);
+    File::put($projectRoot.'/composer.json', json_encode(['name' => 'acme/source'], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+
+    config()->set('oxcribe.oxinfer.binary', $projectRoot.'/bin/missing-oxinfer');
+    config()->set('oxcribe.oxinfer.source_root', '/tmp/oxinfer-source');
+    config()->set('oxcribe.publish.base_url', null);
+    config()->set('oxcribe.publish.token', null);
+
+    $this->artisan('oxcribe:doctor', ['--project-root' => $projectRoot])
+        ->expectsOutputToContain('php artisan oxcribe:install-binary v0.1.1 --source-root=/tmp/oxinfer-source')
         ->assertFailed();
 
     File::deleteDirectory($projectRoot);

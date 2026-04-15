@@ -6,6 +6,7 @@ return [
     'oxinfer' => [
         'binary' => env('OXINFER_BINARY', 'oxinfer'),
         'install_path' => env('OXINFER_INSTALL_PATH', 'bin/oxinfer'),
+        'source_root' => env('OXINFER_SOURCE_ROOT'),
         'working_directory' => env('OXINFER_WORKING_DIRECTORY'),
         'timeout' => (int) env('OXINFER_TIMEOUT', 120),
         'release' => [

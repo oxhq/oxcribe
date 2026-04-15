@@ -12,10 +12,24 @@ php artisan vendor:publish --tag=oxcribe-config
 Fast path:
 
 ```bash
-php artisan oxcribe:install-binary v0.1.0
+php artisan oxcribe:install-binary v0.1.1
 ```
 
 That downloads the matching release binary from `oxhq/oxinfer`, verifies the published checksum, and installs it into the app-local binary path.
+
+If you have a local `oxinfer` checkout and want a source-backed install path that does not depend on release assets, point `oxcribe` at the checkout and either prefer or force source builds:
+
+```bash
+php artisan oxcribe:install-binary v0.1.1 --source-root=/absolute/path/to/oxinfer --prefer-source
+```
+
+Or set it once in the environment:
+
+```env
+OXINFER_SOURCE_ROOT=/absolute/path/to/oxinfer
+```
+
+When `OXINFER_SOURCE_ROOT` is configured, `oxcribe:install-binary` will automatically fall back to building from source if the tagged release is missing binary assets or checksums. Source builds use the checked-out local tree; the requested version remains the preferred release tag for remote downloads.
 
 Manual fallback:
 
@@ -30,6 +44,7 @@ GOEXPERIMENT=jsonv2 go test ./...
 
 ```env
 OXINFER_BINARY=/absolute/path/to/oxinfer
+OXINFER_SOURCE_ROOT=/absolute/path/to/oxinfer
 OXINFER_WORKING_DIRECTORY=/absolute/path/to/your/laravel/app
 OXINFER_TIMEOUT=120
 ```

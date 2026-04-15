@@ -1,6 +1,6 @@
 # Oxcribe
 
-`v0.1.0` is the frozen OSS baseline of `oxcribe`.
+`v0.1.1` is the current OSS maintenance release of `oxcribe`.
 From this cut forward, `oxcribe` keeps the stable Laravel package contracts and a basic local viewer, while `oxcloud` becomes the home of the advanced hosted UI, workspaces, and versioned collaboration.
 
 `Oxcribe` is a runtime-first Laravel package that boots your app, captures the route graph Laravel actually registered, sends a strict `AnalysisRequest` to `oxinfer`, and merges runtime truth with static analysis before emitting OpenAPI.
@@ -46,7 +46,7 @@ php artisan vendor:publish --tag=oxcribe-config
 If you do not already have `oxinfer`, install the matching release binary directly from GitHub:
 
 ```bash
-php artisan oxcribe:install-binary v0.1.0
+php artisan oxcribe:install-binary v0.1.1
 ```
 
 That command detects the local OS and architecture, downloads the release asset from `oxhq/oxinfer`, verifies its SHA-256 checksum, and installs it into the app-local binary path that `oxcribe` already resolves.
@@ -71,7 +71,7 @@ php artisan oxcribe:analyze
 php artisan oxcribe:export-openapi
 php artisan oxcribe:publish
 php artisan oxcribe:doctor
-php artisan oxcribe:install-binary v0.1.0
+php artisan oxcribe:install-binary v0.1.1
 ```
 
 Both commands support `--write=/absolute/path.json` and `--pretty`.
@@ -138,7 +138,7 @@ The command sends:
 - `source.appName`
 - `source.appUrl`
 - `source.framework = "laravel"`
-- `source.packageVersion = "oxcribe v0.1.0"`
+- `source.packageVersion = "oxcribe v0.1.1"`
 
 ## Overrides
 

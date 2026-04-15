@@ -29,7 +29,13 @@ php artisan oxcribe:doctor --skip-cloud
 Fast path:
 
 ```bash
-php artisan oxcribe:install-binary v0.1.0
+php artisan oxcribe:install-binary v0.1.1
+```
+
+If the tagged GitHub release is missing binary assets or `checksums.txt`, switch to a source-backed install:
+
+```bash
+php artisan oxcribe:install-binary v0.1.1 --source-root=/absolute/path/to/oxinfer --prefer-source
 ```
 
 Manual fallback:
@@ -43,6 +49,8 @@ Then either:
 - put the binary on `PATH`
 - place it at `bin/oxinfer` inside the Laravel app
 - or point `OXINFER_BINARY` to the executable path
+
+If you keep `oxinfer` checked out locally, set `OXINFER_SOURCE_ROOT` so future `oxcribe:install-binary` runs can build from source automatically when a release is incomplete.
 
 ### Publish token or cloud URL is missing
 

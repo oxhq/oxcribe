@@ -13,6 +13,16 @@
 - keep `composer.json` without a hardcoded `version`
 - update `CHANGELOG.md`
 - make sure docs mention current limitations and supported stacks
+- verify `oxcribe:install-binary` still works against the tagged `oxinfer` release and against a local `OXINFER_SOURCE_ROOT` checkout
+
+## Binary Contract
+
+`oxcribe:install-binary` expects the tagged `oxinfer` release to expose:
+
+- platform binaries named `oxinfer_<tag>_<os>_<arch>[.exe]`
+- a `checksums.txt` file in the same release
+
+If a release is missing those assets, the supported fallback is to configure `OXINFER_SOURCE_ROOT` and build from source locally.
 
 ## Real App Smoke
 

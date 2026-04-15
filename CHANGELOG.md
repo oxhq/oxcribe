@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.1
+
+- add a source-backed `oxcribe:install-binary` fallback via `OXINFER_SOURCE_ROOT`
+- improve `oxcribe:doctor` guidance when a local `oxinfer` checkout is configured
+- document the binary release contract expected from `oxinfer`
+
 ## v0.1.0
 
 - freeze the OSS package contracts around `oxcribe.oxinfer.v2` and `oxcribe.docs.v1`
