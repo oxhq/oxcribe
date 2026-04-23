@@ -6,7 +6,7 @@ It boots Laravel, captures the real route graph, sends a strict `AnalysisRequest
 
 ## Status
 
-`v0.1.2` is the next public preview release of `oxcribe`.
+`v0.1.3` is the current public preview release of `oxcribe`.
 
 This release is aimed at Laravel teams that already ship APIs and want accurate docs without hand-maintained OpenAPI files. It is ready for real-world preview use on Laravel API projects, but it should still be treated as an early release: validate the output on your own routes before rolling it into a production docs workflow.
 
@@ -57,7 +57,7 @@ php artisan vendor:publish --tag=oxcribe-config
 If you do not already have `oxinfer`, install the matching release binary directly from GitHub:
 
 ```bash
-php artisan oxcribe:install-binary v0.1.2
+php artisan oxcribe:install-binary v0.1.3
 ```
 
 That command detects the local OS and architecture, downloads the release asset from `oxhq/oxinfer`, verifies its SHA-256 checksum, and installs it into the app-local binary path that `oxcribe` already resolves.
@@ -82,7 +82,7 @@ php artisan oxcribe:analyze
 php artisan oxcribe:export-openapi
 php artisan oxcribe:publish
 php artisan oxcribe:doctor
-php artisan oxcribe:install-binary v0.1.2
+php artisan oxcribe:install-binary v0.1.3
 ```
 
 Both commands support `--write=/absolute/path.json` and `--pretty`.
@@ -149,7 +149,7 @@ The command sends:
 - `source.appName`
 - `source.appUrl`
 - `source.framework = "laravel"`
-- `source.packageVersion = "oxcribe v0.1.2"`
+- `source.packageVersion = "oxcribe v0.1.3"`
 
 ## Overrides
 

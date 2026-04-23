@@ -12,7 +12,7 @@ php artisan vendor:publish --tag=oxcribe-config
 Fast path:
 
 ```bash
-php artisan oxcribe:install-binary v0.1.2
+php artisan oxcribe:install-binary v0.1.3
 ```
 
 That downloads the matching release binary from `oxhq/oxinfer`, verifies the published checksum, and installs it into the app-local binary path.
@@ -20,7 +20,7 @@ That downloads the matching release binary from `oxhq/oxinfer`, verifies the pub
 If you have a local `oxinfer` checkout and want a source-backed install path that does not depend on release assets, point `oxcribe` at the checkout and either prefer or force source builds:
 
 ```bash
-php artisan oxcribe:install-binary v0.1.1 --source-root=/absolute/path/to/oxinfer --prefer-source
+php artisan oxcribe:install-binary v0.1.3 --source-root=/absolute/path/to/oxinfer --prefer-source
 ```
 
 Or set it once in the environment:

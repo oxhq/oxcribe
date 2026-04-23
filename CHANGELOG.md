@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.3
+
+- correct the public preview release after the matching `oxinfer` CI harness fix
+- point install and publish docs at the current `oxinfer` preview tag
+- keep the end-user package docs trimmed to shipped behavior and supported preview limits
+
 ## v0.1.2
 
 - switch `oxinfer` build and install docs from the old Go path to the current Rust release flow
