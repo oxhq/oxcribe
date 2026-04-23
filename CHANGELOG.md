@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.4
+
+- correct the preview release after the `v0.1.3` remote CI-only failures
+- align the package default tag, docs, and install guidance with the current coordinated engine release
+- harden the test harness for CI source-build environments and slow cold cargo builds
+
 ## v0.1.3
 
 - correct the public preview release after the matching `oxinfer` CI harness fix

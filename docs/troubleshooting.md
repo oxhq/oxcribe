@@ -29,13 +29,13 @@ php artisan oxcribe:doctor --skip-cloud
 Fast path:
 
 ```bash
-php artisan oxcribe:install-binary v0.1.3
+php artisan oxcribe:install-binary v0.1.4
 ```
 
 If the tagged GitHub release is missing binary assets or `checksums.txt`, switch to a source-backed install:
 
 ```bash
-php artisan oxcribe:install-binary v0.1.3 --source-root=/absolute/path/to/oxinfer --prefer-source
+php artisan oxcribe:install-binary v0.1.4 --source-root=/absolute/path/to/oxinfer --prefer-source
 ```
 
 Manual fallback:

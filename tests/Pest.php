@@ -42,7 +42,7 @@ function configureFixtureOxinfer(string $fixtureRoot): void
                 $command[] = '--locked';
             }
 
-            $build = new Process($command, $oxinferRoot);
+            $build = new Process($command, $oxinferRoot, null, null, 300);
             $build->mustRun();
         }
 

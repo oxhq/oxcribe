@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\File;
+use Oxhq\Oxcribe\Support\PackageVersion;
 
 it('reports a healthy first-publish preflight when the project, binary, and cloud config are ready', function () {
     $projectRoot = sys_get_temp_dir().'/oxcribe-doctor-project-'.bin2hex(random_bytes(6));
@@ -71,12 +72,13 @@ it('fails with actionable output when first-publish preflight is missing critica
     File::put($projectRoot.'/composer.json', json_encode(['name' => 'acme/broken'], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 
     config()->set('oxcribe.oxinfer.binary', $projectRoot.'/bin/missing-oxinfer');
+    config()->set('oxcribe.oxinfer.source_root', null);
     config()->set('oxcribe.publish.base_url', 'https://oxcloud.example.test');
     config()->set('oxcribe.publish.token', null);
 
     $this->artisan('oxcribe:doctor', ['--project-root' => $projectRoot])
         ->expectsOutputToContain('FAIL  Oxinfer binary:')
-        ->expectsOutputToContain('Next: run `php artisan oxcribe:install-binary v0.1.1`')
+        ->expectsOutputToContain(sprintf('Next: run `php artisan oxcribe:install-binary %s`', PackageVersion::TAG))
         ->expectsOutputToContain('FAIL  Publish token: Missing OXCLOUD_TOKEN / oxcribe.publish.token.')
         ->expectsOutputToContain('Oxcribe preflight found blocking issues.')
         ->assertFailed();
@@ -96,7 +98,10 @@ it('suggests the configured local source root when oxinfer is missing', function
     config()->set('oxcribe.publish.token', null);
 
     $this->artisan('oxcribe:doctor', ['--project-root' => $projectRoot])
-        ->expectsOutputToContain('php artisan oxcribe:install-binary v0.1.1 --source-root=/tmp/oxinfer-source')
+        ->expectsOutputToContain(sprintf(
+            'php artisan oxcribe:install-binary %s --source-root=/tmp/oxinfer-source',
+            PackageVersion::TAG,
+        ))
         ->assertFailed();
 
     File::deleteDirectory($projectRoot);
