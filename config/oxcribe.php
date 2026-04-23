@@ -27,7 +27,7 @@ return [
         'limits' => [
             'max_workers' => 8,
             'max_files' => 500,
-            'max_depth' => 2,
+            'max_depth' => 6,
         ],
         'cache' => [
             'enabled' => true,

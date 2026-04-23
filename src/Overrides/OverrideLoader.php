@@ -58,15 +58,17 @@ final class OverrideLoader
                 throw new InvalidArgumentException(sprintf('Override file "%s" must return an array.', $file));
             }
 
-            $sources[] = $file;
+            $sourceFile = $this->normalizeSourceId($file);
 
-            foreach ($this->buildRulesFromPayload($payload['defaults'] ?? null, $file.'#defaults') as $rule) {
+            $sources[] = $sourceFile;
+
+            foreach ($this->buildRulesFromPayload($payload['defaults'] ?? null, $sourceFile.'#defaults') as $rule) {
                 $rules[] = $rule;
             }
 
             $routes = $this->routePayloadsFromFile($payload);
             foreach ($routes as $index => $routePayload) {
-                $rules[] = OverrideRule::fromArray($routePayload, $file.'#routes['.$index.']');
+                $rules[] = OverrideRule::fromArray($routePayload, $sourceFile.'#routes['.$index.']');
             }
         }
 
@@ -117,6 +119,11 @@ final class OverrideLoader
         }
 
         return rtrim($projectRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.ltrim($file, DIRECTORY_SEPARATOR);
+    }
+
+    private function normalizeSourceId(string $source): string
+    {
+        return str_replace('\\', '/', $source);
     }
 
     /**

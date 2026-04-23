@@ -29,7 +29,7 @@ php artisan oxcribe:doctor --skip-cloud
 Fast path:
 
 ```bash
-php artisan oxcribe:install-binary v0.1.1
+php artisan oxcribe:install-binary v0.1.2
 ```
 
 If the tagged GitHub release is missing binary assets or `checksums.txt`, switch to a source-backed install:
@@ -41,7 +41,7 @@ php artisan oxcribe:install-binary v0.1.1 --source-root=/absolute/path/to/oxinfe
 Manual fallback:
 
 ```bash
-GOEXPERIMENT=jsonv2 go build -o oxinfer ./cmd/oxinfer
+cargo build --locked --release
 ```
 
 Then either:
@@ -90,3 +90,11 @@ Then use:
 - `GET /oxcribe/docs`
 - `GET /oxcribe/openapi.json`
 - `GET /oxcribe/docs/payload.json`
+
+## After Setup Is Green
+
+Once `doctor`, `analyze`, and `export-openapi` are working on your app, publish a preview version and inspect the hosted docs and OpenAPI output before broad rollout:
+
+```bash
+php artisan oxcribe:publish --publish-version=preview
+```

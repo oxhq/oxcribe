@@ -50,9 +50,17 @@ it('resolves the oxinfer binary from the project bin directory', function () {
         'diagnostics' => [],
     ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
 
-    $binaryPath = $binDir.'/oxinfer';
-    file_put_contents($binaryPath, "#!/bin/sh\ncat >/dev/null\nprintf '%s' ".escapeshellarg($responsePayload)."\n");
-    chmod($binaryPath, 0755);
+    makePortablePhpCommand(
+        $binDir,
+        'oxinfer',
+        sprintf(
+            <<<'PHP'
+stream_get_contents(STDIN);
+fwrite(STDOUT, %s);
+PHP,
+            var_export($responsePayload, true)
+        )
+    );
 
     $client = new ProcessOxinferClient([
         'binary' => 'oxinfer',

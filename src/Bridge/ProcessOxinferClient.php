@@ -8,6 +8,7 @@ use Oxhq\Oxcribe\Contracts\OxinferClient;
 use Oxhq\Oxcribe\Data\AnalysisRequest;
 use Oxhq\Oxcribe\Data\AnalysisResponse;
 use Oxhq\Oxcribe\Support\OxinferBinaryResolver;
+use RuntimeException;
 use Symfony\Component\Process\Process;
 
 final class ProcessOxinferClient implements OxinferClient

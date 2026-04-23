@@ -1,9 +1,20 @@
 # Oxcribe
 
-`v0.1.1` is the current OSS maintenance release of `oxcribe`.
-From this cut forward, `oxcribe` keeps the stable Laravel package contracts and a basic local viewer, while `oxcloud` becomes the home of the advanced hosted UI, workspaces, and versioned collaboration.
+`Oxcribe` is a runtime-first Laravel package for generating and publishing API docs from the routes, middleware, bindings, and responses your app actually serves.
 
-`Oxcribe` is a runtime-first Laravel package that boots your app, captures the route graph Laravel actually registered, sends a strict `AnalysisRequest` to `oxinfer`, and merges runtime truth with static analysis before emitting OpenAPI.
+It boots Laravel, captures the real route graph, sends a strict `AnalysisRequest` to `oxinfer`, and merges runtime truth with static analysis before emitting OpenAPI and docs payloads.
+
+## Status
+
+`v0.1.2` is the next public preview release of `oxcribe`.
+
+This release is aimed at Laravel teams that already ship APIs and want accurate docs without hand-maintained OpenAPI files. It is ready for real-world preview use on Laravel API projects, but it should still be treated as an early release: validate the output on your own routes before rolling it into a production docs workflow.
+
+## Why Oxcribe
+
+- use Laravel runtime as the source of truth for routes, middleware, guards, and bindings
+- enrich runtime truth with `oxinfer` static analysis for request fields, resources, examples, and response overlays
+- publish the same normalized docs payload to a local viewer or to `oxcloud`
 
 The intended launch path is simple:
 
@@ -27,11 +38,11 @@ The intended launch path is simple:
 - Laravel `10`, `11`, `12` or `13`
 - a local `oxinfer` binary available on `PATH`, placed at `bin/oxinfer` inside the Laravel app, or configured in `config/oxcribe.php`
 
-`oxinfer` still requires `GOEXPERIMENT=jsonv2` to build and test. Build it like this:
+`oxinfer` is the Rust analysis engine behind `oxcribe`. Build it like this:
 
 ```bash
-GOEXPERIMENT=jsonv2 go build -o oxinfer ./cmd/oxinfer
-GOEXPERIMENT=jsonv2 go test ./...
+cargo build --locked --release
+cargo test --locked
 ```
 
 If `oxinfer` is not on `PATH`, either place it at `bin/oxinfer` in the Laravel app or point `oxcribe.oxinfer.binary` to the built binary.
@@ -46,7 +57,7 @@ php artisan vendor:publish --tag=oxcribe-config
 If you do not already have `oxinfer`, install the matching release binary directly from GitHub:
 
 ```bash
-php artisan oxcribe:install-binary v0.1.1
+php artisan oxcribe:install-binary v0.1.2
 ```
 
 That command detects the local OS and architecture, downloads the release asset from `oxhq/oxinfer`, verifies its SHA-256 checksum, and installs it into the app-local binary path that `oxcribe` already resolves.
@@ -71,7 +82,7 @@ php artisan oxcribe:analyze
 php artisan oxcribe:export-openapi
 php artisan oxcribe:publish
 php artisan oxcribe:doctor
-php artisan oxcribe:install-binary v0.1.1
+php artisan oxcribe:install-binary v0.1.2
 ```
 
 Both commands support `--write=/absolute/path.json` and `--pretty`.
@@ -138,7 +149,7 @@ The command sends:
 - `source.appName`
 - `source.appUrl`
 - `source.framework = "laravel"`
-- `source.packageVersion = "oxcribe v0.1.1"`
+- `source.packageVersion = "oxcribe v0.1.2"`
 
 ## Overrides
 
@@ -160,7 +171,7 @@ Runtime is the primary source of truth, but `oxcribe` also supports route-level 
 - `security` is derived from runtime middleware/auth, not from static authorization hints
 - static authorization hints are exposed under `x-oxcribe.authorizationStatic`
 - Livewire and non-Laravel stacks are out of scope
-- `oxinfer` still depends on `jsonv2`, so package integration assumes the binary was built with that experiment enabled
+- preview release: validate generated docs on your own routes before depending on them as the only source of truth
 - the local viewer is package-owned and does not depend on publishing frontend stubs into the host app
 
 ## Smart Examples

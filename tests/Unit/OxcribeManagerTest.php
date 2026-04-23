@@ -203,8 +203,8 @@ PHP);
             'tags' => ['Global', 'Config', 'Users'],
             'matchedSources' => [
                 'config:overrides.defaults',
-                $projectRoot.'/oxcribe.overrides.php#defaults',
-                $projectRoot.'/oxcribe.overrides.php#routes[1]',
+                str_replace('\\', '/', $projectRoot.'/oxcribe.overrides.php').'#defaults',
+                str_replace('\\', '/', $projectRoot.'/oxcribe.overrides.php').'#routes[1]',
             ],
         ]);
 });

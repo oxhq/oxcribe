@@ -179,7 +179,7 @@ final class ResourceSchemaIndex
      */
     private function convertNode(array $node): array
     {
-        $ref = trim((string) ($node['ref'] ?? ''));
+        $ref = $this->nodeRef($node);
         if ($ref !== '') {
             $schema = $this->referenceSchema($ref);
             if ($schema === null) {
@@ -266,7 +266,7 @@ final class ResourceSchemaIndex
      */
     private function expandNode(array $node, array $resolving = []): array
     {
-        $ref = trim((string) ($node['ref'] ?? ''));
+        $ref = $this->nodeRef($node);
         if ($ref !== '') {
             $expanded = $this->expandRef($ref, $resolving);
             if ($expanded === null) {
@@ -332,6 +332,18 @@ final class ResourceSchemaIndex
         }
 
         return $schema;
+    }
+
+    private function nodeRef(array $node): string
+    {
+        foreach (['ref', '$ref'] as $key) {
+            $ref = trim((string) ($node[$key] ?? ''));
+            if ($ref !== '') {
+                return $ref;
+            }
+        }
+
+        return '';
     }
 
     /**

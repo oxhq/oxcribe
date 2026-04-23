@@ -66,7 +66,7 @@ PHP);
 
     $set = app(OverrideLoader::class)->load($projectRoot);
 
-    expect($set->sources)->toContain('config', $overrideFile)
+    expect($set->sources)->toContain('config', str_replace('\\', '/', $overrideFile))
         ->and($set->rules)->toHaveCount(5)
         ->and($set->rules[0]->summary)->toBeNull()
         ->and($set->rules[0]->tags)->toBe(['Config'])

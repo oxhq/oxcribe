@@ -16,6 +16,7 @@ use Oxhq\Oxcribe\Examples\OperationExampleSpecFactory;
 use Oxhq\Oxcribe\OpenApi\Support\EffectiveRequestFieldLocation;
 use Oxhq\Oxcribe\OpenApi\Support\RequestFieldIndex;
 use Oxhq\Oxcribe\OpenApi\Support\ResourceSchemaIndex;
+use ReflectionMethod;
 
 final class OpenApiDocumentFactory
 {
@@ -489,6 +490,13 @@ final class OpenApiDocumentFactory
             if ($inlineSchema !== []) {
                 $inlineBodySchema = $inlineSchema;
             }
+        }
+
+        $validationErrorSchema = $this->validationErrorResponseSchema($operation, $response);
+        if ($validationErrorSchema !== null) {
+            $inlineBodySchema = $inlineBodySchema === null
+                ? $validationErrorSchema
+                : array_replace_recursive($inlineBodySchema, $validationErrorSchema);
         }
 
         if ($kind === 'inertia') {
@@ -1005,6 +1013,10 @@ final class OpenApiDocumentFactory
      */
     private function hydrateSchemaDescriptions(array $schema, string $path = ''): array
     {
+        if (($schema['format'] ?? null) === null && $this->shouldInferUriFormat($path, $schema)) {
+            $schema['format'] = 'uri';
+        }
+
         if ($path !== '' && ! is_string($schema['description'] ?? null)) {
             $schema['description'] = $this->generatedFieldDescription($path, $schema);
         }
@@ -1026,6 +1038,203 @@ final class OpenApiDocumentFactory
         }
 
         return $schema;
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     */
+    private function shouldInferUriFormat(string $path, array $schema): bool
+    {
+        $type = $schema['type'] ?? null;
+        $isStringSchema = $type === 'string'
+            || (is_array($type) && in_array('string', $type, true));
+
+        if (! $isStringSchema) {
+            return false;
+        }
+
+        $leaf = strtolower((string) last(array_filter(explode('.', $path), static fn (string $segment): bool => $segment !== '')));
+        if ($leaf === '') {
+            return false;
+        }
+
+        return in_array($leaf, ['url', 'uri', 'href', 'link', 'links', 'self'], true)
+            || str_contains($path, '.url')
+            || str_contains($path, '.uri')
+            || str_contains($path, '.href')
+            || str_contains($path, '.link')
+            || str_contains($path, '.links.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $response
+     * @return array<string, mixed>|null
+     */
+    private function validationErrorResponseSchema(MergedOperation $operation, array $response): ?array
+    {
+        $source = trim((string) ($response['source'] ?? ''));
+        $via = trim((string) ($response['via'] ?? ''));
+        if ($source !== 'ValidationException::withMessages' && $via !== 'ValidationException::withMessages') {
+            return null;
+        }
+
+        $controllerClass = $operation->action->fqcn;
+        $controllerMethod = $operation->action->method;
+        if (! is_string($controllerClass) || $controllerClass === '' || ! is_string($controllerMethod) || $controllerMethod === '') {
+            return null;
+        }
+
+        if (! class_exists($controllerClass, false)) {
+            $sourceFile = $this->controllerSourceFile($controllerClass);
+            if ($sourceFile === null) {
+                return null;
+            }
+
+            try {
+                require_once $sourceFile;
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        if (! class_exists($controllerClass, false) || ! method_exists($controllerClass, $controllerMethod)) {
+            return null;
+        }
+
+        try {
+            $reflection = new ReflectionMethod($controllerClass, $controllerMethod);
+        } catch (\ReflectionException) {
+            return null;
+        }
+
+        $file = $reflection->getFileName();
+        if (! is_string($file) || $file === '' || ! is_file($file)) {
+            return null;
+        }
+
+        $methodSource = $this->readMethodSource($file, $reflection->getStartLine(), $reflection->getEndLine());
+        if ($methodSource === null) {
+            return null;
+        }
+
+        $keys = $this->validationMessageKeys($methodSource);
+        if ($keys === []) {
+            return null;
+        }
+
+        $properties = [];
+        foreach ($keys as $key) {
+            $properties[$key] = [
+                'type' => 'array',
+                'items' => [
+                    'type' => 'string',
+                ],
+            ];
+        }
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'errors' => [
+                    'type' => 'object',
+                    'properties' => $properties,
+                    'required' => $keys,
+                ],
+            ],
+            'required' => ['errors'],
+        ];
+    }
+
+    private function readMethodSource(string $file, int $startLine, int $endLine): ?string
+    {
+        $contents = @file($file, FILE_IGNORE_NEW_LINES);
+        if (! is_array($contents) || $contents === []) {
+            return null;
+        }
+
+        $startIndex = max(0, $startLine - 1);
+        $length = max(0, $endLine - $startLine + 1);
+        $lines = array_slice($contents, $startIndex, $length);
+
+        return $lines === [] ? null : implode("\n", $lines);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function validationMessageKeys(string $methodSource): array
+    {
+        $needle = 'ValidationException::withMessages';
+        $position = strpos($methodSource, $needle);
+        if ($position === false) {
+            return [];
+        }
+
+        $arrayStart = strpos($methodSource, '[', $position);
+        if ($arrayStart === false) {
+            return [];
+        }
+
+        $body = $this->balancedArrayBody(substr($methodSource, $arrayStart));
+        if ($body === null) {
+            return [];
+        }
+
+        preg_match_all('/[\'"]([^\'"]+)[\'"]\s*=>/', $body, $matches);
+        $keys = array_values(array_unique(array_filter(
+            array_map('strval', $matches[1] ?? []),
+            static fn (string $value): bool => $value !== '',
+        )));
+        sort($keys);
+
+        return $keys;
+    }
+
+    private function balancedArrayBody(string $source): ?string
+    {
+        $depth = 0;
+        $body = '';
+
+        for ($index = 0, $length = strlen($source); $index < $length; $index++) {
+            $char = $source[$index];
+
+            if ($char === '[') {
+                $depth++;
+                if ($depth === 1) {
+                    continue;
+                }
+            } elseif ($char === ']') {
+                $depth--;
+                if ($depth === 0) {
+                    return $body;
+                }
+            }
+
+            if ($depth >= 1) {
+                $body .= $char;
+            }
+        }
+
+        return null;
+    }
+
+    private function controllerSourceFile(string $controllerClass): ?string
+    {
+        $workingDirectory = trim((string) config('oxcribe.oxinfer.working_directory', ''));
+        if ($workingDirectory === '') {
+            $workingDirectory = base_path();
+        }
+
+        $relativePath = str_starts_with($controllerClass, 'App\\')
+            ? 'app/'.str_replace('\\', '/', substr($controllerClass, 4)).'.php'
+            : str_replace('\\', '/', $controllerClass).'.php';
+
+        $path = rtrim($workingDirectory, '/\\').DIRECTORY_SEPARATOR.$relativePath;
+        if (! is_file($path)) {
+            return null;
+        }
+
+        return $path;
     }
 
     private function humanizedResourceName(string $uri): string

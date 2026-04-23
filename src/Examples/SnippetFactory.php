@@ -52,17 +52,17 @@ final class SnippetFactory
      */
     private function curlSnippet(string $method, string $url, array $headers, mixed $body): string
     {
-        $parts = ['curl', '-X', escapeshellarg($method), escapeshellarg($url)];
+        $parts = ['curl', '-X', $this->shellQuote($method), $this->shellQuote($url)];
 
         ksort($headers);
         foreach ($headers as $name => $value) {
             $parts[] = '-H';
-            $parts[] = escapeshellarg($name.': '.$value);
+            $parts[] = $this->shellQuote($name.': '.$value);
         }
 
         if ($body !== null) {
             $parts[] = '--data';
-            $parts[] = escapeshellarg((string) json_encode($body, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+            $parts[] = $this->shellQuote((string) json_encode($body, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
         }
 
         return implode(' ', $parts);
@@ -109,5 +109,10 @@ final class SnippetFactory
         }
 
         return 'axios('.json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT).');';
+    }
+
+    private function shellQuote(string $value): string
+    {
+        return "'".str_replace("'", "'\"'\"'", $value)."'";
     }
 }

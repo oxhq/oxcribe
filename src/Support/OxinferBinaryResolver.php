@@ -24,15 +24,15 @@ final class OxinferBinaryResolver
         }
 
         if ($this->looksLikePath($configured)) {
-            $candidate = $this->normalizePath($configured, $workingDirectory);
-
-            if (is_file($candidate) && is_executable($candidate)) {
-                return $candidate;
+            foreach ($this->pathCandidates($configured, $workingDirectory) as $candidate) {
+                if ($this->isRunnableFile($candidate)) {
+                    return $candidate;
+                }
             }
 
             throw new RuntimeException(sprintf(
                 'Unable to find the oxinfer binary at "%s". Set OXINFER_BINARY or oxcribe.oxinfer.binary to an executable path.',
-                $candidate,
+                $this->normalizePath($configured, $workingDirectory),
             ));
         }
 
@@ -70,6 +70,7 @@ final class OxinferBinaryResolver
     private function looksLikePath(string $binary): bool
     {
         return str_contains($binary, DIRECTORY_SEPARATOR)
+            || str_contains($binary, '/')
             || str_starts_with($binary, '.')
             || str_starts_with($binary, '~');
     }
@@ -82,10 +83,47 @@ final class OxinferBinaryResolver
             return ($home !== '' ? rtrim($home, DIRECTORY_SEPARATOR) : '').DIRECTORY_SEPARATOR.ltrim(substr($binary, 2), DIRECTORY_SEPARATOR);
         }
 
-        if (str_starts_with($binary, DIRECTORY_SEPARATOR)) {
+        if (
+            str_starts_with($binary, DIRECTORY_SEPARATOR)
+            || preg_match('/^[A-Za-z]:[\\\\\\/]/', $binary) === 1
+        ) {
             return $binary;
         }
 
         return rtrim($workingDirectory, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.ltrim($binary, DIRECTORY_SEPARATOR);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function pathCandidates(string $binary, string $workingDirectory): array
+    {
+        $candidate = $this->normalizePath($binary, $workingDirectory);
+        $candidates = [$candidate];
+
+        if (PHP_OS_FAMILY === 'Windows' && pathinfo($candidate, PATHINFO_EXTENSION) === '') {
+            foreach (['.exe', '.cmd', '.bat'] as $suffix) {
+                $candidates[] = $candidate.$suffix;
+            }
+        }
+
+        return array_values(array_unique($candidates));
+    }
+
+    private function isRunnableFile(string $path): bool
+    {
+        if (! is_file($path)) {
+            return false;
+        }
+
+        if (PHP_OS_FAMILY !== 'Windows') {
+            return is_executable($path);
+        }
+
+        if (is_executable($path)) {
+            return true;
+        }
+
+        return in_array(strtolower('.'.pathinfo($path, PATHINFO_EXTENSION)), ['.exe', '.cmd', '.bat'], true);
     }
 }

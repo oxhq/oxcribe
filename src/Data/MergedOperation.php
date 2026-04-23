@@ -82,7 +82,8 @@ final readonly class MergedOperation
             return is_array($hint)
                 && is_string($hint['kind'] ?? null)
                 && is_string($hint['source'] ?? null)
-                && is_string($hint['resolution'] ?? null);
+                && is_string($hint['resolution'] ?? null)
+                && ($hint['resolution'] ?? null) !== 'runtime';
         }));
     }
 

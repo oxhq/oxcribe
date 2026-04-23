@@ -4,7 +4,8 @@
 
 - `composer validate --strict`
 - `./vendor/bin/pest`
-- `GOEXPERIMENT=jsonv2 go test ./...` in `go/oxinfer`
+- `cargo test --locked` in `oxinfer`
+- `cargo build --locked --release` in `oxinfer`
 - verify `OXINFER_BINARY` install instructions still match the current `oxinfer` build
 - verify the GitHub Actions matrix passes for Laravel `10`, `11`, `12` and `13`
 
@@ -26,8 +27,9 @@ If a release is missing those assets, the supported fallback is to configure `OX
 
 ## Real App Smoke
 
-- install `oxhq/oxcribe` in at least one external Laravel app
+- install `oxhq/oxcribe` in at least one real Laravel app
 - publish config
 - run `php artisan oxcribe:analyze --pretty`
 - run `php artisan oxcribe:export-openapi --pretty`
 - inspect output for runtime auth, request/response overlays and package-specific enrichments
+- if you do not have an external app yet, rerun the owned-app smoke before tagging and clearly label the release as a preview

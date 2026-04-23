@@ -12,7 +12,7 @@ php artisan vendor:publish --tag=oxcribe-config
 Fast path:
 
 ```bash
-php artisan oxcribe:install-binary v0.1.1
+php artisan oxcribe:install-binary v0.1.2
 ```
 
 That downloads the matching release binary from `oxhq/oxinfer`, verifies the published checksum, and installs it into the app-local binary path.
@@ -33,11 +33,11 @@ When `OXINFER_SOURCE_ROOT` is configured, `oxcribe:install-binary` will automati
 
 Manual fallback:
 
-`oxcribe` shells out to a local `oxinfer` binary. `oxinfer` currently needs `GOEXPERIMENT=jsonv2` for both build and tests.
+`oxcribe` shells out to a local `oxinfer` binary. `oxinfer` is the Rust analysis engine and can be built directly from the source checkout.
 
 ```bash
-GOEXPERIMENT=jsonv2 go build -o oxinfer ./cmd/oxinfer
-GOEXPERIMENT=jsonv2 go test ./...
+cargo build --locked --release
+cargo test --locked
 ```
 
 ## 3. Point `oxcribe` At The Binary
@@ -117,6 +117,6 @@ php artisan oxcribe:publish
 php artisan oxcribe:publish --publish-version=2026.03.25
 ```
 
-On success, `oxcribe:publish` prints the exact hosted version URL plus matching explorer and changelog URLs so the first review loop can happen immediately.
+On success, `oxcribe:publish` prints the exact hosted version URL plus matching explorer and changelog URLs so you can review the published output immediately.
 
 If the preflight fails, start with [docs/troubleshooting.md](troubleshooting.md).

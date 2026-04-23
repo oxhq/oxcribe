@@ -6,12 +6,15 @@ use Illuminate\Support\Facades\File;
 
 it('reports a healthy first-publish preflight when the project, binary, and cloud config are ready', function () {
     $projectRoot = sys_get_temp_dir().'/oxcribe-doctor-project-'.bin2hex(random_bytes(6));
-    $binaryPath = $projectRoot.'/bin/oxinfer';
+    $binaryPath = makePortablePhpCommand(
+        $projectRoot.'/bin',
+        'oxinfer',
+        <<<'PHP'
+fwrite(STDOUT, "oxinfer version 0.1.1\n");
+PHP
+    );
 
-    File::ensureDirectoryExists($projectRoot.'/bin');
     File::put($projectRoot.'/composer.json', json_encode(['name' => 'acme/example'], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
-    File::put($binaryPath, "#!/bin/sh\necho \"oxinfer version 0.1.1\"\n");
-    @chmod($binaryPath, 0755);
 
     config()->set('app.version', '2026.03.26');
     config()->set('oxcribe.oxinfer.binary', $binaryPath);
@@ -37,12 +40,15 @@ it('reports a healthy first-publish preflight when the project, binary, and clou
 
 it('supports local-only readiness checks when cloud checks are skipped', function () {
     $projectRoot = sys_get_temp_dir().'/oxcribe-doctor-local-'.bin2hex(random_bytes(6));
-    $binaryPath = $projectRoot.'/bin/oxinfer';
+    $binaryPath = makePortablePhpCommand(
+        $projectRoot.'/bin',
+        'oxinfer',
+        <<<'PHP'
+fwrite(STDOUT, "oxinfer version 0.1.1\n");
+PHP
+    );
 
-    File::ensureDirectoryExists($projectRoot.'/bin');
     File::put($projectRoot.'/composer.json', json_encode(['name' => 'acme/local'], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
-    File::put($binaryPath, "#!/bin/sh\necho \"oxinfer version 0.1.1\"\n");
-    @chmod($binaryPath, 0755);
 
     config()->set('oxcribe.oxinfer.binary', $binaryPath);
     config()->set('oxcribe.publish.base_url', null);

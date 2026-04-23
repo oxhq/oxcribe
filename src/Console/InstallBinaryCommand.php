@@ -37,7 +37,10 @@ final class InstallBinaryCommand extends Command
             $baseUrl = rtrim(trim((string) ($release['base_url'] ?? 'https://github.com')), '/');
             $sourceRoot = $this->resolveSourceRoot($this->option('source-root'), $config);
 
-            $installPath = $this->resolveInstallPath((string) ($this->option('path') ?: ($config['install_path'] ?? 'bin/oxinfer')), $os);
+            $installPath = $this->resolveInstallPath(
+                (string) ($this->option('path') ?: ($config['install_path'] ?? 'bin/oxinfer')),
+                $os,
+            );
 
             if (is_file($installPath) && ! $this->option('force')) {
                 throw new RuntimeException(sprintf(
@@ -74,7 +77,7 @@ final class InstallBinaryCommand extends Command
                 }
 
                 $this->warn($exception->getMessage());
-                $this->line(sprintf('Falling back to local oxinfer source at %s…', $sourceRoot));
+                $this->line(sprintf('Falling back to local oxinfer source at %s...', $sourceRoot));
                 $this->buildFromSource($sourceRoot, $installPath, $os);
             }
 
@@ -117,7 +120,7 @@ final class InstallBinaryCommand extends Command
             return null;
         }
 
-        return str_starts_with($resolved, DIRECTORY_SEPARATOR)
+        return $this->isAbsolutePath($resolved)
             ? $resolved
             : base_path($resolved);
     }
@@ -166,7 +169,7 @@ final class InstallBinaryCommand extends Command
             throw new RuntimeException('Install path is empty. Set OXINFER_INSTALL_PATH or pass --path.');
         }
 
-        $resolved = str_starts_with($trimmed, DIRECTORY_SEPARATOR)
+        $resolved = $this->isAbsolutePath($trimmed)
             ? $trimmed
             : base_path($trimmed);
 
@@ -197,7 +200,7 @@ final class InstallBinaryCommand extends Command
         string $assetUrl,
         string $installPath,
     ): void {
-        $this->line(sprintf('Downloading %s for %s/%s…', $tag, $os, $arch));
+        $this->line(sprintf('Downloading %s for %s/%s...', $tag, $os, $arch));
 
         $checksumsResponse = Http::accept('text/plain')
             ->timeout(30)
@@ -242,40 +245,25 @@ final class InstallBinaryCommand extends Command
         $this->assertSourceRoot($sourceRoot);
 
         $finder = new ExecutableFinder;
-        $goBinary = $finder->find('go');
+        $cargoBinary = $finder->find('cargo');
 
-        if ($goBinary === null) {
+        if ($cargoBinary === null) {
             throw new RuntimeException(
-                'Unable to build oxinfer from source because the `go` executable is not available on PATH.'
+                'Unable to build oxinfer from source because the `cargo` executable is not available on PATH.'
             );
         }
 
-        File::ensureDirectoryExists(dirname($installPath));
-        $temporaryPath = $installPath.'.tmp-'.bin2hex(random_bytes(4));
-
-        if ($os === 'windows' && ! str_ends_with(strtolower($temporaryPath), '.exe')) {
-            $temporaryPath .= '.exe';
+        $command = [$cargoBinary, 'build', '--release'];
+        if (is_file($sourceRoot.'/Cargo.lock')) {
+            $command[] = '--locked';
         }
 
-        $this->line(sprintf('Building oxinfer from source at %s…', $sourceRoot));
+        $this->line(sprintf('Building oxinfer from source at %s...', $sourceRoot));
 
-        $build = new Process([
-            $goBinary,
-            'build',
-            '-trimpath',
-            '-ldflags=-s -w',
-            '-o',
-            $temporaryPath,
-            './cmd/oxinfer',
-        ], $sourceRoot, [
-            'GOEXPERIMENT' => 'jsonv2',
-        ], null, 300);
-
+        $build = new Process($command, $sourceRoot, null, null, 300);
         $build->run();
 
         if (! $build->isSuccessful()) {
-            @unlink($temporaryPath);
-
             throw new RuntimeException(sprintf(
                 "Unable to build oxinfer from source at %s.\n%s",
                 $sourceRoot,
@@ -283,9 +271,15 @@ final class InstallBinaryCommand extends Command
             ));
         }
 
-        $binaryContents = File::get($temporaryPath);
-        @unlink($temporaryPath);
+        $builtBinary = $this->builtBinaryPath($sourceRoot, $os);
+        if (! is_file($builtBinary)) {
+            throw new RuntimeException(sprintf(
+                'Cargo build completed, but the expected oxinfer binary was not found at "%s".',
+                $builtBinary,
+            ));
+        }
 
+        $binaryContents = File::get($builtBinary);
         $this->writeInstalledBinary($installPath, $os, $binaryContents);
         $this->info(sprintf('Installed oxinfer from source to %s', $installPath));
     }
@@ -299,12 +293,32 @@ final class InstallBinaryCommand extends Command
             ));
         }
 
-        if (! is_file($sourceRoot.'/cmd/oxinfer/main.go')) {
+        if (! is_file($sourceRoot.'/Cargo.toml')) {
             throw new RuntimeException(sprintf(
-                'Configured oxinfer source root "%s" is missing cmd/oxinfer/main.go.',
+                'Configured oxinfer source root "%s" is missing Cargo.toml.',
                 $sourceRoot,
             ));
         }
+    }
+
+    private function builtBinaryPath(string $sourceRoot, string $os): string
+    {
+        $requested = $sourceRoot.'/target/release/oxinfer'.($os === 'windows' ? '.exe' : '');
+        $host = $sourceRoot.'/target/release/oxinfer'.(PHP_OS_FAMILY === 'Windows' ? '.exe' : '');
+
+        foreach (array_values(array_unique([$requested, $host])) as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return $requested;
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        return str_starts_with($path, DIRECTORY_SEPARATOR)
+            || preg_match('/^[A-Za-z]:[\\\\\\/]/', $path) === 1;
     }
 
     private function writeInstalledBinary(string $installPath, string $os, string $binaryContents): void

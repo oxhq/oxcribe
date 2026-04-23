@@ -32,7 +32,7 @@ it('downloads and installs the matching oxinfer binary', function () {
         '--os' => 'linux',
         '--arch' => 'amd64',
     ])
-        ->expectsOutput('Downloading v0.1.1 for linux/amd64…')
+        ->expectsOutput('Downloading v0.1.1 for linux/amd64...')
         ->expectsOutput(sprintf('Installed oxinfer v0.1.1 to %s', $binaryPath))
         ->assertSuccessful();
 
@@ -112,23 +112,7 @@ it('falls back to a local oxinfer source checkout when release checksums are una
     $binaryPath = $directory.'/bin/oxinfer';
     $sourceRoot = $directory.'/oxinfer-source';
 
-    File::ensureDirectoryExists($sourceRoot.'/cmd/oxinfer');
-    File::put($sourceRoot.'/cmd/oxinfer/main.go', "package main\nfunc main() {}\n");
-
-    $cleanupGo = fakeGoBinary(<<<'SH'
-#!/bin/sh
-out=""
-prev=""
-for arg in "$@"; do
-  if [ "$prev" = "-o" ]; then out="$arg"; fi
-  prev="$arg"
-done
-if [ -z "$out" ]; then
-  echo "missing -o" >&2
-  exit 1
-fi
-printf 'source-built-binary\n' > "$out"
-SH);
+    makeMinimalRustOxinferSource($sourceRoot, "source-built-binary\n");
 
     config()->set('oxcribe.oxinfer.release.repository', 'oxhq/oxinfer');
     config()->set('oxcribe.oxinfer.release.base_url', 'https://github.com');
@@ -138,24 +122,20 @@ SH);
         'https://github.com/oxhq/oxinfer/releases/download/v0.1.1/checksums.txt' => Http::response('', 404),
     ]);
 
-    try {
-        $this->artisan('oxcribe:install-binary', [
-            'version' => 'v0.1.1',
-            '--path' => $binaryPath,
-            '--os' => 'linux',
-            '--arch' => 'amd64',
-        ])
-            ->expectsOutput('Downloading v0.1.1 for linux/amd64…')
-            ->expectsOutputToContain('Unable to download release checksums')
-            ->expectsOutputToContain('Falling back to local oxinfer source')
-            ->expectsOutput(sprintf('Installed oxinfer from source to %s', $binaryPath))
-            ->assertSuccessful();
-    } finally {
-        $cleanupGo();
-    }
+    $this->artisan('oxcribe:install-binary', [
+        'version' => 'v0.1.1',
+        '--path' => $binaryPath,
+        '--os' => 'linux',
+        '--arch' => 'amd64',
+    ])
+        ->expectsOutput('Downloading v0.1.1 for linux/amd64...')
+        ->expectsOutputToContain('Unable to download release checksums')
+        ->expectsOutputToContain('Falling back to local oxinfer source')
+        ->expectsOutput(sprintf('Installed oxinfer from source to %s', $binaryPath))
+        ->assertSuccessful();
 
     expect(File::exists($binaryPath))->toBeTrue()
-        ->and(File::get($binaryPath))->toBe("source-built-binary\n");
+        ->and(File::size($binaryPath))->toBeGreaterThan(0);
 
     File::deleteDirectory($directory);
 });
@@ -165,62 +145,44 @@ it('prefers a local oxinfer source checkout without hitting the network when req
     $binaryPath = $directory.'/bin/oxinfer';
     $sourceRoot = $directory.'/oxinfer-source';
 
-    File::ensureDirectoryExists($sourceRoot.'/cmd/oxinfer');
-    File::put($sourceRoot.'/cmd/oxinfer/main.go', "package main\nfunc main() {}\n");
-
-    $cleanupGo = fakeGoBinary(<<<'SH'
-#!/bin/sh
-out=""
-prev=""
-for arg in "$@"; do
-  if [ "$prev" = "-o" ]; then out="$arg"; fi
-  prev="$arg"
-done
-printf 'source-preferred-binary\n' > "$out"
-SH);
+    makeMinimalRustOxinferSource($sourceRoot, "source-preferred-binary\n");
 
     config()->set('oxcribe.oxinfer.release.repository', 'oxhq/oxinfer');
     config()->set('oxcribe.oxinfer.release.base_url', 'https://github.com');
 
     Http::fake();
 
-    try {
-        $this->artisan('oxcribe:install-binary', [
-            'version' => 'v0.1.1',
-            '--path' => $binaryPath,
-            '--os' => 'linux',
-            '--arch' => 'amd64',
-            '--source-root' => $sourceRoot,
-            '--prefer-source' => true,
-        ])
-            ->expectsOutputToContain('Building oxinfer from source')
-            ->expectsOutput(sprintf('Installed oxinfer from source to %s', $binaryPath))
-            ->assertSuccessful();
-    } finally {
-        $cleanupGo();
-    }
+    $this->artisan('oxcribe:install-binary', [
+        'version' => 'v0.1.1',
+        '--path' => $binaryPath,
+        '--os' => 'linux',
+        '--arch' => 'amd64',
+        '--source-root' => $sourceRoot,
+        '--prefer-source' => true,
+    ])
+        ->expectsOutputToContain('Building oxinfer from source')
+        ->expectsOutput(sprintf('Installed oxinfer from source to %s', $binaryPath))
+        ->assertSuccessful();
 
     expect(File::exists($binaryPath))->toBeTrue()
-        ->and(File::get($binaryPath))->toBe("source-preferred-binary\n");
+        ->and(File::size($binaryPath))->toBeGreaterThan(0);
 
     Http::assertNothingSent();
 
     File::deleteDirectory($directory);
 });
 
-function fakeGoBinary(string $script): callable
+function makeMinimalRustOxinferSource(string $sourceRoot, string $output): void
 {
-    $directory = sys_get_temp_dir().'/oxcribe-go-'.bin2hex(random_bytes(6));
-    $binaryPath = $directory.'/go';
-    $originalPath = getenv('PATH') ?: '';
-
-    File::ensureDirectoryExists($directory);
-    File::put($binaryPath, $script);
-    @chmod($binaryPath, 0755);
-    putenv(sprintf('PATH=%s%s%s', $directory, PATH_SEPARATOR, $originalPath));
-
-    return static function () use ($directory, $originalPath): void {
-        putenv(sprintf('PATH=%s', $originalPath));
-        File::deleteDirectory($directory);
-    };
+    File::ensureDirectoryExists($sourceRoot.'/src');
+    File::put($sourceRoot.'/Cargo.toml', <<<'TOML'
+[package]
+name = "oxinfer"
+version = "0.1.1"
+edition = "2021"
+TOML);
+    File::put(
+        $sourceRoot.'/src/main.rs',
+        sprintf("fn main() {\n    print!(%s);\n}\n", json_encode($output, JSON_THROW_ON_ERROR))
+    );
 }
