@@ -15,9 +15,7 @@ Package CI is intended to run the same Pest suite across that matrix.
 - static request/response/resource/package inference lives in `oxinfer`
 - OpenAPI `security` comes from runtime auth, not static authorization hints
 - static authorization hints are emitted as `x-oxcribe.authorizationStatic`
-- smart example synthesis belongs in `oxcribe`; `oxinfer` should only provide additive semantic metadata
-
-The current examples design note lives in [smart-examples-v1.md](smart-examples-v1.md).
+- example synthesis belongs in `oxcribe`; `oxinfer` should only provide additive semantic metadata
 
 ## Hostile Fixture Apps
 

@@ -174,16 +174,10 @@ Runtime is the primary source of truth, but `oxcribe` also supports route-level 
 - preview release: validate generated docs on your own routes before depending on them as the only source of truth
 - the local viewer is package-owned and does not depend on publishing frontend stubs into the host app
 
-## Smart Examples
-
-The next product layer for `oxcribe` is deterministic smart examples built from runtime + static analysis.
-The design lives in [docs/smart-examples-v1.md](docs/smart-examples-v1.md).
-
 ## Package Docs
 
 - installation: [docs/installation.md](docs/installation.md)
 - troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md)
 - compatibility and fixtures: [docs/compatibility.md](docs/compatibility.md)
 - overrides: [docs/overrides.md](docs/overrides.md)
-- smart examples: [docs/smart-examples-v1.md](docs/smart-examples-v1.md)
 - release checklist: [docs/release.md](docs/release.md)

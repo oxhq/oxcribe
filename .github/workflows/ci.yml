@@ -56,6 +56,9 @@ jobs:
       - name: Validate composer metadata
         run: composer validate --strict
 
+      - name: Check public docs hygiene
+        run: python scripts/check_public_docs.py
+
       - name: Align dependency matrix
         run: |
           composer require --no-update illuminate/console:${{ matrix.laravel }} illuminate/routing:${{ matrix.laravel }} illuminate/support:${{ matrix.laravel }}
